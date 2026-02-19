@@ -773,6 +773,7 @@ a:hover { text-decoration: underline; }
   line-height: 1.35;
   margin-bottom: 2px;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -3195,7 +3196,6 @@ function searchCategory(name) {
   console.log('Calling doSearch with keywords:', name);
   doSearch(0);
 }
-}
 
 /* ============================================
    PRODUCT DETAIL PANEL
@@ -3721,18 +3721,30 @@ function confirmLocation() {
 }
 
 // Modal event listeners
-document.getElementById('locationModalClose').addEventListener('click', hideLocationModal);
-document.getElementById('locationCancel').addEventListener('click', hideLocationModal);
-document.getElementById('locationConfirm').addEventListener('click', confirmLocation);
-document.getElementById('searchAddressBtn').addEventListener('click', searchAddress);
-document.getElementById('addressInput').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') searchAddress();
-});
+function bindLocationModalEvents() {
+  var closeBtn = document.getElementById('locationModalClose');
+  var cancelBtn = document.getElementById('locationCancel');
+  var confirmBtn = document.getElementById('locationConfirm');
+  var searchBtn = document.getElementById('searchAddressBtn');
+  var addressInput = document.getElementById('addressInput');
+  var modal = document.getElementById('locationModal');
 
-// Modal overlay click to close
-document.getElementById('locationModal').addEventListener('click', function(e) {
-  if (e.target === this) hideLocationModal();
-});
+  if (!closeBtn || !cancelBtn || !confirmBtn || !searchBtn || !addressInput || !modal) return;
+
+  closeBtn.addEventListener('click', hideLocationModal);
+  cancelBtn.addEventListener('click', hideLocationModal);
+  confirmBtn.addEventListener('click', confirmLocation);
+  searchBtn.addEventListener('click', searchAddress);
+  addressInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') searchAddress();
+  });
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === this) hideLocationModal();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', bindLocationModalEvents);
 </script>
 
 <!-- Location Modal -->
