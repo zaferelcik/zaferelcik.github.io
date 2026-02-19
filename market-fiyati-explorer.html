@@ -2007,6 +2007,200 @@ a:hover { text-decoration: underline; }
   .toast { bottom: calc(28px + env(safe-area-inset-bottom)); }
   .scroll-top { bottom: calc(28px + env(safe-area-inset-bottom)); }
 }
+
+/* ============================================
+   LOCATION MODAL
+   ============================================ */
+.location-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.location-modal-overlay.active { display: flex; }
+
+.location-modal {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modalSlideUp 0.3s var(--ease);
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.location-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.location-modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.location-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.location-modal-close:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.location-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.location-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.location-input-section label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.location-input {
+  padding: 12px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+
+.location-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.location-map-section {
+  height: 300px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.location-map {
+  width: 100%;
+  height: 100%;
+}
+
+.location-confirm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.location-selected {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.location-selected span {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.location-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.location-buttons button {
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+#locationCancel {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+#locationCancel:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+#locationConfirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .location-modal-overlay {
+    padding: 10px;
+  }
+
+  .location-modal {
+    max-height: 95vh;
+  }
+
+  .location-modal-body {
+    padding: 16px 20px;
+    gap: 16px;
+  }
+
+  .location-map-section {
+    height: 250px;
+  }
+
+  .location-buttons {
+    flex-direction: column-reverse;
+  }
+
+  .location-buttons button {
+    width: 100%;
+  }
+}
 </style>
 </head>
 <body>
@@ -2493,7 +2687,11 @@ function getMyLocation() {
       var msg = 'Konum alinamadi';
       if (err.code === 1) msg = 'Konum izni reddedildi - Tarayici ayarlarindan izin verin';
       else if (err.code === 2) msg = 'Konum servisi kullanilabilir degil - GPS veya WiFi acin';
-      else if (err.code === 3) msg = 'Konum alma zaman asimi - Tekrar deneyin';
+      else if (err.code === 3) {
+        msg = 'Konum alma zaman asimi';
+        // Zaman aşımı durumunda modal aç
+        setTimeout(() => showLocationModal(), 1000);
+      }
       showToast(msg);
     },
     opts
@@ -3374,6 +3572,113 @@ document.querySelectorAll('.nav-tab').forEach(function(tab) {
   tab.addEventListener('click', function() {
     if (scannerActive) stopScanner();
   });
+});
+
+/* ============================================
+   LOCATION MODAL
+   ============================================ */
+var locationMap = null;
+var selectedLat = null;
+var selectedLon = null;
+
+function showLocationModal() {
+  document.getElementById('locationModal').classList.add('active');
+  document.getElementById('addressInput').focus();
+  initLocationMap();
+}
+
+function hideLocationModal() {
+  document.getElementById('locationModal').classList.remove('active');
+  if (locationMap) {
+    locationMap.remove();
+    locationMap = null;
+  }
+  selectedLat = null;
+  selectedLon = null;
+}
+
+function initLocationMap() {
+  if (locationMap) return;
+
+  // Ankara merkezli başlat
+  locationMap = L.map('locationMap').setView([39.9334, 32.8597], 10);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 18
+  }).addTo(locationMap);
+
+  // Harita tıklama eventi
+  locationMap.on('click', function(e) {
+    setSelectedLocation(e.latlng.lat, e.latlng.lng);
+  });
+}
+
+function setSelectedLocation(lat, lon) {
+  selectedLat = lat;
+  selectedLon = lon;
+
+  // Marker ekle/güncelle
+  if (window.locationMarker) {
+    locationMap.removeLayer(window.locationMarker);
+  }
+  window.locationMarker = L.marker([lat, lon]).addTo(locationMap);
+  locationMap.setView([lat, lon], 15);
+
+  // UI güncelle
+  document.getElementById('selectedLocation').textContent = lat.toFixed(4) + ', ' + lon.toFixed(4);
+  document.getElementById('locationConfirm').disabled = false;
+}
+
+async function searchAddress() {
+  var address = document.getElementById('addressInput').value.trim();
+  if (!address) {
+    showToast('Lutfen adres girin');
+    return;
+  }
+
+  showToast('Adres araniyor...');
+
+  try {
+    // Nominatim API ile adres arama
+    var response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=TR`);
+    var data = await response.json();
+
+    if (data && data.length > 0) {
+      var result = data[0];
+      setSelectedLocation(parseFloat(result.lat), parseFloat(result.lon));
+      showToast('Adres bulundu');
+    } else {
+      showToast('Adres bulunamadi');
+    }
+  } catch (err) {
+    console.error('Adres arama hatasi:', err);
+    showToast('Adres arama hatasi');
+  }
+}
+
+function confirmLocation() {
+  if (!selectedLat || !selectedLon) return;
+
+  state.lat = selectedLat;
+  state.lon = selectedLon;
+  document.getElementById('locationText').textContent = selectedLat.toFixed(4) + ', ' + selectedLon.toFixed(4);
+  showToast('Konum onaylandi');
+  hideLocationModal();
+}
+
+// Modal event listeners
+document.getElementById('locationModalClose').addEventListener('click', hideLocationModal);
+document.getElementById('locationCancel').addEventListener('click', hideLocationModal);
+document.getElementById('locationConfirm').addEventListener('click', confirmLocation);
+document.getElementById('searchAddressBtn').addEventListener('click', searchAddress);
+document.getElementById('addressInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') searchAddress();
+});
+
+// Modal overlay click to close
+document.getElementById('locationModal').addEventListener('click', function(e) {
+  if (e.target === this) hideLocationModal();
 });
 </script>
 
