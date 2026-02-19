@@ -1006,22 +1006,39 @@ a:hover { text-decoration: underline; }
 
 .c-tag {
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: var(--radius-xs);
   background: var(--surface-alt);
   color: var(--text-secondary);
   transition: all 0.15s;
   cursor: pointer;
+  display: inline-block;
+  border: 1px solid transparent;
+  user-select: none;
 }
 
 .c-tag:hover {
   background: var(--accent);
   color: white;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(232,69,44,0.2);
+  border-color: var(--accent);
 }
 
-.c-card:hover .c-tag { background: var(--accent-subtle); color: var(--accent); }
-.c-card:hover .c-tag:hover { background: var(--accent); color: white; }
+.c-tag:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(232,69,44,0.15);
+}
+
+.c-card:hover .c-tag { 
+  background: var(--accent-subtle); 
+  color: var(--accent);
+}
+
+.c-card:hover .c-tag:hover { 
+  background: var(--accent); 
+  color: white;
+}
 
 /* ============================================
    API REFERENCE
@@ -3141,8 +3158,13 @@ async function doCategories() {
 
     // Sadece sub kategorilere (c-tag) click event ekle
     el.querySelectorAll('.c-tag').forEach(function(tag) {
-      tag.addEventListener('click', function() {
-        searchCategory(this.getAttribute('data-category') + ' ' + this.getAttribute('data-subcategory'));
+      tag.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var category = this.getAttribute('data-category');
+        var subcategory = this.getAttribute('data-subcategory');
+        console.log('Subcategory clicked:', category, subcategory);
+        searchCategory(category + ' ' + subcategory);
       });
     });
   } catch(e) { showError(el, e, doCategories); }
@@ -3150,14 +3172,29 @@ async function doCategories() {
 }
 
 function searchCategory(name) {
+  console.log('searchCategory called with:', name);
   document.getElementById('searchKeywords').value = name;
-  document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
-  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
-  document.querySelector('[data-tab="search"]').classList.add('active');
-  document.querySelector('[data-tab="search"]').setAttribute('aria-selected','true');
-  document.getElementById('panel-search').classList.add('active');
+  document.getElementById('searchPages').value = 0;
+  document.querySelectorAll('.nav-tab').forEach(function(t) { 
+    t.classList.remove('active'); 
+    t.setAttribute('aria-selected','false'); 
+  });
+  document.querySelectorAll('.panel').forEach(function(p) { 
+    p.classList.remove('active'); 
+  });
+  var searchTab = document.querySelector('[data-tab="search"]');
+  if (searchTab) {
+    searchTab.classList.add('active');
+    searchTab.setAttribute('aria-selected','true');
+  }
+  var searchPanel = document.getElementById('panel-search');
+  if (searchPanel) {
+    searchPanel.classList.add('active');
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  doSearch();
+  console.log('Calling doSearch with keywords:', name);
+  doSearch(0);
+}
 }
 
 /* ============================================
