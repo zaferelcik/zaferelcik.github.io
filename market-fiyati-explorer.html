@@ -963,7 +963,7 @@ a:hover { text-decoration: underline; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px;
-  cursor: pointer;
+  cursor: default;
   transition: all 0.2s var(--ease);
   position: relative;
   overflow: hidden;
@@ -982,7 +982,7 @@ a:hover { text-decoration: underline; }
   transition: transform 0.3s var(--ease);
 }
 
-.c-card:hover { box-shadow: var(--shadow-md); border-color: var(--border); }
+.c-card:hover { box-shadow: var(--shadow-sm); }
 .c-card:hover::before { transform: scaleX(1); }
 
 .c-card-name {
@@ -1011,9 +1011,17 @@ a:hover { text-decoration: underline; }
   background: var(--surface-alt);
   color: var(--text-secondary);
   transition: all 0.15s;
+  cursor: pointer;
+}
+
+.c-tag:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateY(-1px);
 }
 
 .c-card:hover .c-tag { background: var(--accent-subtle); color: var(--accent); }
+.c-card:hover .c-tag:hover { background: var(--accent); color: white; }
 
 /* ============================================
    API REFERENCE
@@ -2414,7 +2422,7 @@ a:hover { text-decoration: underline; }
     <div class="search-card">
       <div class="search-card-title">Urun Kategorileri</div>
       <p class="search-card-desc">Tum mevcut urun kategorilerini ve alt kategorileri listeler.</p>
-      <button class="btn-action" id="btnCategories" onclick="doCategories()"><span class="spinner"></span>Kategorileri Yukle</button>
+      <button class="btn-ghost" id="btnCategories" onclick="doCategories()"><span class="spinner"></span>Yenile</button>
     </div>
     <div id="categoriesResults"></div>
   </div>
@@ -2625,6 +2633,11 @@ document.querySelectorAll('.nav-tab').forEach(function(tab) {
     tab.classList.add('active');
     tab.setAttribute('aria-selected', 'true');
     document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+
+    // Kategoriler sekmesine girince otomatik yükle
+    if (tab.dataset.tab === 'categories') {
+      setTimeout(doCategories, 100);
+    }
   });
 });
 
@@ -3115,19 +3128,22 @@ async function doCategories() {
     data.content.forEach(function(cat) {
       var name = escapeHtml(cat.name);
       var subs = cat.subcategories || [];
-      html += '<div class="c-card" data-category="' + name + '">' +
+      html += '<div class="c-card">' +
         '<div class="c-card-name">' + name + '</div>' +
         '<div class="c-card-count">' + subs.length + ' alt kategori</div>' +
         '<div class="c-card-tags">' + subs.map(function(s) {
-          return '<span class="c-tag">' + escapeHtml(s) + '</span>';
+          return '<span class="c-tag" data-category="' + name + '" data-subcategory="' + escapeHtml(s) + '">' + escapeHtml(s) + '</span>';
         }).join('') + '</div></div>';
     });
 
     html += '</div>';
     el.innerHTML = html;
 
-    el.querySelectorAll('.c-card').forEach(function(card) {
-      card.addEventListener('click', function() { searchCategory(this.getAttribute('data-category')); });
+    // Sadece sub kategorilere (c-tag) click event ekle
+    el.querySelectorAll('.c-tag').forEach(function(tag) {
+      tag.addEventListener('click', function() {
+        searchCategory(this.getAttribute('data-category') + ' ' + this.getAttribute('data-subcategory'));
+      });
     });
   } catch(e) { showError(el, e, doCategories); }
   finally { setBtnLoading('btnCategories', false); }
