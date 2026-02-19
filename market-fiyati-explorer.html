@@ -2475,10 +2475,13 @@ a:hover { text-decoration: underline; }
   </button>
   <div class="settings-panel" id="settingsPanel">
     <label for="proxyUrl">CORS Proxy URL</label>
-    <input type="text" id="proxyUrl" value="" placeholder="https://corsproxy.io/?" />
+    <input type="text" id="proxyUrl" value="https://test.cors.workers.dev/?" placeholder="https://test.cors.workers.dev/?" />
     <p class="settings-hint">
-      CORS hatasi aliyorsaniz bir proxy ekleyin. Bos birakirsaniz dogrudan API'ye istek atilir.
-      Ornek: <code>https://corsproxy.io/?</code>
+      CORS hatasi aliyorsaniz asagidaki alternatif proxy'lerden birini deneyin:<br>
+      • <code>https://test.cors.workers.dev/?</code> (Cloudflare, önerilen)<br>
+      • <code>https://cors.x2u.in/</code><br>
+      • <code>https://api.allorigins.win/raw?url=</code><br>
+      Not: Bos birakirsaniz dogrudan API'ye istek atilir.
     </p>
   </div>
 
