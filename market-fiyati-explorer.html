@@ -3377,5 +3377,32 @@ document.querySelectorAll('.nav-tab').forEach(function(tab) {
 });
 </script>
 
+<!-- Location Modal -->
+<div class="location-modal-overlay" id="locationModal">
+  <div class="location-modal">
+    <div class="location-modal-header">
+      <h3>Konum Belirleme</h3>
+      <button class="location-modal-close" id="locationModalClose">&times;</button>
+    </div>
+    <div class="location-modal-body">
+      <div class="location-input-section">
+        <label for="addressInput">Adresinizi girin:</label>
+        <input type="text" id="addressInput" placeholder="Örnek: Ankara, Çankaya" class="location-input">
+        <button class="btn-action" id="searchAddressBtn">Ara</button>
+      </div>
+      <div class="location-map-section">
+        <div id="locationMap" class="location-map"></div>
+      </div>
+      <div class="location-confirm-section">
+        <p class="location-selected">Seçilen konum: <span id="selectedLocation">Henüz seçilmedi</span></p>
+        <div class="location-buttons">
+          <button class="btn-ghost" id="locationCancel">İptal</button>
+          <button class="btn-action" id="locationConfirm" disabled>Onayla</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
