@@ -2457,25 +2457,43 @@ bindEnter('similarDistance', doSimilarSearch);
    LOCATION
    ============================================ */
 function getMyLocation() {
-  if (!navigator.geolocation) { 
-    showToast('Tarayici konum desteklemiyor'); 
-    return; 
+  // HTTPS kontrolü
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    showToast('Konum almak icin HTTPS gerekli');
+    console.warn('Geolocation requires HTTPS');
+    return;
   }
+
+  if (!navigator.geolocation) {
+    showToast('Tarayici konum desteklemiyor');
+    console.warn('Geolocation not supported');
+    return;
+  }
+
+  console.log('Konum alma baslatildi...');
   document.getElementById('locationText').textContent = '...';
-  var opts = { timeout: 10000, enableHighAccuracy: false, maximumAge: 0 };
+
+  var opts = {
+    timeout: 15000,
+    enableHighAccuracy: true,
+    maximumAge: 300000 // 5 dakika cache
+  };
+
   navigator.geolocation.getCurrentPosition(
     function(pos) {
+      console.log('Konum alindi:', pos.coords);
       state.lat = pos.coords.latitude;
       state.lon = pos.coords.longitude;
-      document.getElementById('locationText').textContent = state.lat.toFixed(2) + ', ' + state.lon.toFixed(2);
+      document.getElementById('locationText').textContent = state.lat.toFixed(4) + ', ' + state.lon.toFixed(4);
       showToast('Konum guncellendi');
-    }, 
+    },
     function(err) {
+      console.error('Konum hatasi:', err);
       document.getElementById('locationText').textContent = 'Ankara';
       var msg = 'Konum alinamadi';
-      if (err.code === 1) msg = 'Konum izni reddedildi';
-      else if (err.code === 2) msg = 'Konum servisi kullanilabilir degil';
-      else if (err.code === 3) msg = 'Konum alma zaman asimi';
+      if (err.code === 1) msg = 'Konum izni reddedildi - Tarayici ayarlarindan izin verin';
+      else if (err.code === 2) msg = 'Konum servisi kullanilabilir degil - GPS veya WiFi acin';
+      else if (err.code === 3) msg = 'Konum alma zaman asimi - Tekrar deneyin';
       showToast(msg);
     },
     opts
