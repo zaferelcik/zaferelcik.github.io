@@ -1953,6 +1953,191 @@ a:hover { text-decoration: underline; }
 }
 
 /* ============================================
+   CATEGORY BREADCRUMB
+   ============================================ */
+.breadcrumb-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  animation: fadeUp 0.3s var(--ease);
+}
+
+.breadcrumb-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.breadcrumb-item {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  font-family: inherit;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.breadcrumb-item:hover {
+  background: var(--accent-bg);
+  color: var(--accent-hover);
+}
+
+.breadcrumb-item.breadcrumb-current {
+  color: var(--text);
+  font-weight: 700;
+  cursor: default;
+  background: var(--surface-alt);
+  border: 1px solid var(--border-light);
+  padding: 4px 10px;
+}
+
+.breadcrumb-item.breadcrumb-current:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.breadcrumb-root svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.breadcrumb-sep {
+  color: var(--text-tertiary);
+  font-size: 16px;
+  font-weight: 300;
+  user-select: none;
+  line-height: 1;
+}
+
+.breadcrumb-close {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-tertiary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.breadcrumb-close:hover {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.breadcrumb-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.breadcrumb-search-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.breadcrumb-search-wrap svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.breadcrumb-search-wrap input {
+  width: 100%;
+  padding: 8px 12px 8px 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface-alt);
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.breadcrumb-search-wrap input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+  background: var(--surface);
+}
+
+.breadcrumb-search-wrap input::placeholder {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.breadcrumb-search-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--text);
+  color: var(--bg);
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.breadcrumb-search-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.c-card-name {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.c-card-name:hover {
+  color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  .breadcrumb-bar { padding: 12px; }
+  .breadcrumb-search-row { flex-direction: column; }
+  .breadcrumb-search-btn { width: 100%; text-align: center; min-height: 40px; }
+  .breadcrumb-item { font-size: 12px; padding: 3px 6px; }
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
@@ -2322,6 +2507,30 @@ a:hover { text-decoration: underline; }
       <input type="hidden" id="searchPages" value="0">
     </div>
 
+    <!-- Category Breadcrumb Navigation -->
+    <div class="breadcrumb-bar" id="breadcrumbBar" style="display:none">
+      <div class="breadcrumb-top">
+        <div class="breadcrumb-nav" id="breadcrumbNav">
+          <button class="breadcrumb-item breadcrumb-root" onclick="clearCategoryFilter()" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Kategoriler
+          </button>
+          <span class="breadcrumb-sep">&#8250;</span>
+          <button class="breadcrumb-item" id="bcMainCat" type="button"></button>
+          <span class="breadcrumb-sep" id="bcSubSep">&#8250;</span>
+          <span class="breadcrumb-item breadcrumb-current" id="bcSubCat"></span>
+        </div>
+        <button class="breadcrumb-close" onclick="clearCategoryFilter()" type="button" title="Kategori filtresini kaldir">&times;</button>
+      </div>
+      <div class="breadcrumb-search-row">
+        <div class="breadcrumb-search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="categorySearchInput" placeholder="Bu kategori icinde ara...">
+        </div>
+        <button class="breadcrumb-search-btn" onclick="doCategorySearch(0)" type="button">Filtrele</button>
+      </div>
+    </div>
+
     <div id="searchWelcome">
       <div class="welcome">
         <div class="welcome-emoji">&#128722;</div>
@@ -2575,6 +2784,9 @@ function showToast(msg) {
 var state = { lat: 39.9334, lon: 32.8597 };
 var API_BASE = 'https://api.marketfiyati.org.tr';
 
+/* Category breadcrumb state */
+var categoryState = { active: false, mainCategory: '', subCategory: '' };
+
 function getProxy() { return document.getElementById('proxyUrl').value.trim(); }
 
 function apiUrl(path) {
@@ -2677,6 +2889,7 @@ bindEnter('identityKeywords', doIdentitySearch);
 bindEnter('similarId', doSimilarSearch);
 bindEnter('similarKeywords', doSimilarSearch);
 bindEnter('similarDistance', doSimilarSearch);
+bindEnter('categorySearchInput', function() { doCategorySearch(0); });
 
 /* ============================================
    LOCATION
@@ -2898,6 +3111,15 @@ function quickSearch(term) {
    1. SEARCH
    ============================================ */
 async function doSearch(page) {
+  // Clear category filter when doing normal search
+  if (categoryState.active) {
+    categoryState.active = false;
+    categoryState.mainCategory = '';
+    categoryState.subCategory = '';
+    var bcBar = document.getElementById('breadcrumbBar');
+    if (bcBar) bcBar.style.display = 'none';
+  }
+
   var el = document.getElementById('searchResults');
   var welcome = document.getElementById('searchWelcome');
   if (welcome) welcome.style.display = 'none';
@@ -3157,44 +3379,186 @@ async function doCategories() {
     html += '</div>';
     el.innerHTML = html;
 
-    // Sadece sub kategorilere (c-tag) click event ekle
+    // Alt kategorilere (c-tag) click event ekle - breadcrumb navigasyonuyla
     el.querySelectorAll('.c-tag').forEach(function(tag) {
       tag.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         var category = this.getAttribute('data-category');
         var subcategory = this.getAttribute('data-subcategory');
-        console.log('Subcategory clicked:', category, subcategory);
-        searchCategory(category + ' ' + subcategory);
+        navigateToCategory(category, subcategory);
+      });
+    });
+
+    // Ana kategori ismine click event ekle
+    el.querySelectorAll('.c-card-name').forEach(function(nameEl) {
+      nameEl.addEventListener('click', function(e) {
+        e.preventDefault();
+        navigateToCategory(this.textContent.trim(), '');
       });
     });
   } catch(e) { showError(el, e, doCategories); }
   finally { setBtnLoading('btnCategories', false); }
 }
 
-function searchCategory(name) {
-  console.log('searchCategory called with:', name);
-  document.getElementById('searchKeywords').value = name;
-  document.getElementById('searchPages').value = 0;
-  document.querySelectorAll('.nav-tab').forEach(function(t) { 
-    t.classList.remove('active'); 
-    t.setAttribute('aria-selected','false'); 
+/* ============================================
+   CATEGORY BREADCRUMB NAVIGATION
+   ============================================ */
+function navigateToCategory(mainCat, subCat) {
+  categoryState.active = true;
+  categoryState.mainCategory = mainCat || '';
+  categoryState.subCategory = subCat || '';
+
+  // Switch to search tab
+  document.querySelectorAll('.nav-tab').forEach(function(t) {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
   });
-  document.querySelectorAll('.panel').forEach(function(p) { 
-    p.classList.remove('active'); 
+  document.querySelectorAll('.panel').forEach(function(p) {
+    p.classList.remove('active');
   });
   var searchTab = document.querySelector('[data-tab="search"]');
   if (searchTab) {
     searchTab.classList.add('active');
-    searchTab.setAttribute('aria-selected','true');
+    searchTab.setAttribute('aria-selected', 'true');
   }
-  var searchPanel = document.getElementById('panel-search');
-  if (searchPanel) {
-    searchPanel.classList.add('active');
-  }
+  document.getElementById('panel-search').classList.add('active');
+
+  // Hide welcome
+  var welcome = document.getElementById('searchWelcome');
+  if (welcome) welcome.style.display = 'none';
+
+  // Update breadcrumb
+  renderBreadcrumb();
+
+  // Reset in-category search
+  var catInput = document.getElementById('categorySearchInput');
+  if (catInput) catInput.value = '';
+
+  // Update search input to show context
+  var kw = subCat || mainCat;
+  document.getElementById('searchKeywords').value = kw;
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  console.log('Calling doSearch with keywords:', name);
-  doSearch(0);
+
+  // Perform category search
+  doCategorySearch(0);
+}
+
+function navigateToMainCategory() {
+  if (categoryState.mainCategory) {
+    navigateToCategory(categoryState.mainCategory, '');
+  }
+}
+
+function clearCategoryFilter() {
+  categoryState.active = false;
+  categoryState.mainCategory = '';
+  categoryState.subCategory = '';
+
+  // Hide breadcrumb
+  var bcBar = document.getElementById('breadcrumbBar');
+  if (bcBar) bcBar.style.display = 'none';
+
+  // Switch to categories tab
+  document.querySelectorAll('.nav-tab').forEach(function(t) {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  document.querySelectorAll('.panel').forEach(function(p) {
+    p.classList.remove('active');
+  });
+  var catTab = document.querySelector('[data-tab="categories"]');
+  if (catTab) {
+    catTab.classList.add('active');
+    catTab.setAttribute('aria-selected', 'true');
+  }
+  document.getElementById('panel-categories').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderBreadcrumb() {
+  var bar = document.getElementById('breadcrumbBar');
+  var mainEl = document.getElementById('bcMainCat');
+  var subSep = document.getElementById('bcSubSep');
+  var subEl = document.getElementById('bcSubCat');
+
+  if (!categoryState.active) {
+    bar.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = '';
+  mainEl.textContent = categoryState.mainCategory;
+
+  if (categoryState.subCategory) {
+    mainEl.style.display = '';
+    mainEl.classList.remove('breadcrumb-current');
+    mainEl.onclick = navigateToMainCategory;
+    subSep.style.display = '';
+    subEl.style.display = '';
+    subEl.textContent = categoryState.subCategory;
+  } else {
+    mainEl.style.display = '';
+    mainEl.classList.add('breadcrumb-current');
+    mainEl.onclick = null;
+    subSep.style.display = 'none';
+    subEl.style.display = 'none';
+  }
+
+  // Update in-category search placeholder
+  var placeholder = 'Bu kategori icinde ara...';
+  if (categoryState.subCategory) {
+    placeholder = categoryState.subCategory + ' icinde ara...';
+  } else if (categoryState.mainCategory) {
+    placeholder = categoryState.mainCategory + ' icinde ara...';
+  }
+  var catInput = document.getElementById('categorySearchInput');
+  if (catInput) catInput.placeholder = placeholder;
+}
+
+async function doCategorySearch(page) {
+  var el = document.getElementById('searchResults');
+  var pg = (typeof page === 'number') ? page : 0;
+  var sz = parseInt(document.getElementById('searchSize').value) || 24;
+
+  // Build keywords from category
+  var keywords = categoryState.subCategory || categoryState.mainCategory;
+  var withinSearch = document.getElementById('categorySearchInput').value.trim();
+  if (withinSearch) {
+    keywords = keywords + ' ' + withinSearch;
+  }
+
+  setBtnLoading('btnSearch', true);
+  showLoading(el);
+  try {
+    var data = await apiPost('/api/v2/search', {
+      keywords: keywords,
+      pages: pg,
+      size: sz,
+      latitude: state.lat,
+      longitude: state.lon,
+      distance: parseInt(document.getElementById('searchDistance').value) || 3,
+      menuCategory: true
+    });
+    renderProducts(el, data, {
+      page: pg,
+      size: sz,
+      goToPage: function(p) {
+        doCategorySearch(p);
+        window.scrollTo({ top: el.offsetTop - 120, behavior: 'smooth' });
+      }
+    });
+  } catch(e) {
+    showError(el, e, function() { doCategorySearch(pg); });
+  } finally {
+    setBtnLoading('btnSearch', false);
+  }
+}
+
+// Backward compatibility
+function searchCategory(name) {
+  navigateToCategory(name, '');
 }
 
 /* ============================================
