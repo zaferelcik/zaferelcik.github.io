@@ -1,0 +1,3351 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Market Fiyati Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,700;9..144,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" onerror="console.warn('Leaflet yuklenemedi')"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js" onerror="console.warn('QuaggaJS yuklenemedi')"></script>
+<style>
+/* ============================================
+   DESIGN SYSTEM
+   ============================================ */
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-alt: #f0f0f2;
+  --surface-raised: #ffffff;
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #aeaeb2;
+  --accent: #e8452c;
+  --accent-hover: #d03a24;
+  --accent-bg: #fef2ef;
+  --accent-subtle: rgba(232,69,44,0.08);
+  --green: #1b9e4b;
+  --green-bg: #edf9f0;
+  --blue: #0071e3;
+  --blue-bg: #e8f4fd;
+  --yellow: #f5a623;
+  --yellow-bg: #fef9ec;
+  --red: #ff3b30;
+  --red-bg: #fff2f1;
+  --border: #e5e5ea;
+  --border-light: #f0f0f2;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 14px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.12);
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --header-h: 60px;
+  --tabs-h: 52px;
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-alt: #2c2c2e;
+  --surface-raised: #1c1c1e;
+  --text: #f5f5f7;
+  --text-secondary: #98989d;
+  --text-tertiary: #636366;
+  --accent: #ff6347;
+  --accent-hover: #ff4f30;
+  --accent-bg: #2a1510;
+  --accent-subtle: rgba(255,99,71,0.1);
+  --green: #30d158;
+  --green-bg: #0d2a12;
+  --blue: #0a84ff;
+  --blue-bg: #0a1a2e;
+  --yellow: #ffd60a;
+  --yellow-bg: #2a2308;
+  --red: #ff453a;
+  --red-bg: #2a1010;
+  --border: #38383a;
+  --border-light: #2c2c2e;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 14px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+/* ============================================
+   RESET & BASE
+   ============================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--accent-bg); color: var(--accent); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ============================================
+   HEADER
+   ============================================ */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255,255,255,0.78);
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme="dark"] .header {
+  background: rgba(0,0,0,0.78);
+}
+
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.logo-icon {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, var(--accent) 0%, #ff6b4a 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--font);
+  box-shadow: 0 2px 8px rgba(232,69,44,0.3);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.location-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface-alt);
+  padding: 6px 12px 6px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  font-family: inherit;
+}
+
+.location-pill:hover { border-color: var(--accent); color: var(--text); }
+
+.location-pill svg { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; }
+
+.theme-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: all 0.2s var(--ease);
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.theme-toggle:hover { border-color: var(--accent); color: var(--text); transform: rotate(15deg); }
+
+/* ============================================
+   STICKY TABS
+   ============================================ */
+.tabs-bar {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 99;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background: rgba(245,245,247,0.85);
+  border-bottom: 1px solid var(--border);
+}
+
+[data-theme="dark"] .tabs-bar {
+  background: rgba(0,0,0,0.85);
+}
+
+.tabs-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  height: var(--tabs-h);
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs-inner::-webkit-scrollbar { display: none; }
+
+.nav-tab {
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: all 0.2s var(--ease);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.nav-tab .tab-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.nav-tab .tab-icon svg { width: 15px; height: 15px; }
+
+.nav-tab:hover { color: var(--text); background: var(--surface-alt); }
+.nav-tab:hover .tab-icon { opacity: 0.8; }
+
+.nav-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nav-tab.active {
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.nav-tab.active .tab-icon { opacity: 1; }
+
+[data-theme="dark"] .nav-tab.active {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ============================================
+   MAIN LAYOUT
+   ============================================ */
+.main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 100px;
+}
+
+/* ============================================
+   SETTINGS DRAWER (CORS)
+   ============================================ */
+.settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 5px 0;
+  margin-bottom: 20px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  transition: color 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-toggle:hover { color: var(--text-secondary); }
+
+.settings-toggle svg { width: 12px; height: 12px; transition: transform 0.2s var(--ease); }
+.settings-toggle.open svg { transform: rotate(90deg); }
+
+.settings-panel {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  animation: slideDown 0.25s var(--ease);
+}
+
+.settings-panel.open { display: block; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-panel label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.settings-panel input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  background: var(--surface-alt);
+  color: var(--text);
+  transition: border-color 0.15s;
+}
+
+.settings-panel input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.settings-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ============================================
+   PANELS
+   ============================================ */
+.panel { display: none; }
+.panel.active { display: block; animation: fadeUp 0.3s var(--ease); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   HERO SEARCH
+   ============================================ */
+.hero-search {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 32px 28px 28px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-search::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, var(--accent-subtle) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 3px;
+  position: relative;
+}
+
+.hero-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.search-bar-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.search-input-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.search-input-wrap svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.2s var(--ease);
+}
+
+.search-input-wrap input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-subtle);
+}
+
+.search-input-wrap input::placeholder { color: var(--text-tertiary); font-weight: 400; }
+
+.btn-search {
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: white;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.btn-search:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,69,44,0.3); }
+.btn-search:active { transform: translateY(0); }
+.btn-search:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-search .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.25);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+
+.btn-search.loading .spinner { display: inline-block; }
+.btn-search.loading { pointer-events: none; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.search-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  position: relative;
+}
+
+.search-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-opt label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.search-opt input, .search-opt select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  width: 80px;
+  transition: border-color 0.15s;
+}
+
+.search-opt input:focus, .search-opt select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ============================================
+   SEARCH CARD (for non-hero panels)
+   ============================================ */
+.search-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.search-card-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 3px;
+  letter-spacing: -0.3px;
+}
+
+.search-card-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field input, .field select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  background: var(--surface-alt);
+  transition: all 0.15s;
+  color: var(--text);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+  background: var(--surface);
+}
+
+.field input::placeholder { color: var(--text-tertiary); }
+
+/* Primary action button */
+.btn-action {
+  padding: 10px 24px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--text);
+  color: var(--bg);
+}
+
+.btn-action:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-action:active { transform: translateY(0); }
+.btn-action:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-action .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  display: none;
+}
+
+.btn-action.loading .spinner { display: inline-block; }
+.btn-action.loading { pointer-events: none; opacity: 0.6; }
+
+/* ============================================
+   RESULTS
+   ============================================ */
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.results-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+.results-badge {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+/* Facet chips */
+.chip-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.chip {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ============================================
+   PRODUCT CARDS
+   ============================================ */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+.p-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.2s var(--ease), box-shadow 0.25s var(--ease), transform 0.2s var(--ease);
+  cursor: pointer;
+}
+
+.p-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.p-card:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.p-card-body {
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+}
+
+.p-card-img-wrap {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius);
+  background: var(--surface-alt);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+.p-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] .p-card-img { mix-blend-mode: normal; }
+
+.p-card-info { flex: 1; min-width: 0; }
+
+.p-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.35;
+  margin-bottom: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text);
+}
+
+.p-card-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.p-card-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.p-card-actions {
+  margin-top: 8px;
+}
+
+.btn-ghost {
+  font-size: 11px;
+  padding: 4px 10px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.btn-ghost:hover { background: var(--accent); color: white; }
+
+/* Price comparison bar */
+.p-card-prices {
+  border-top: 1px solid var(--border-light);
+  padding: 10px 16px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--surface-alt);
+}
+
+.price-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.price-chip.best {
+  background: var(--green-bg);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.market-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: white;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.no-price {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ============================================
+   DEPOT CARDS
+   ============================================ */
+.depot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.d-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  transition: box-shadow 0.25s var(--ease), border-color 0.2s;
+}
+
+.d-card:hover { box-shadow: var(--shadow-md); }
+
+.d-card-marker {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: white;
+  font-weight: 800;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  font-family: var(--font);
+  letter-spacing: -0.5px;
+}
+
+.d-card-info { flex: 1; min-width: 0; }
+
+.d-card-market {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--accent);
+}
+
+.d-card-name {
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 2px;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.d-card-dist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.d-card-actions {
+  margin-top: 6px;
+}
+
+.d-card-link {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.d-card-link:hover { text-decoration: underline; }
+.d-card-link svg { width: 12px; height: 12px; }
+
+.d-card-id {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 3px;
+  font-family: monospace;
+}
+
+/* ============================================
+   CATEGORY CARDS
+   ============================================ */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.c-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.c-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--yellow) 100%);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s var(--ease);
+}
+
+.c-card:hover { box-shadow: var(--shadow-md); border-color: var(--border); }
+.c-card:hover::before { transform: scaleX(1); }
+
+.c-card-name {
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.c-card-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.c-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.c-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--surface-alt);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.c-card:hover .c-tag { background: var(--accent-subtle); color: var(--accent); }
+
+/* ============================================
+   API REFERENCE
+   ============================================ */
+.api-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.api-card summary {
+  padding: 14px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  list-style: none;
+  transition: background 0.15s;
+}
+
+.api-card summary::-webkit-details-marker { display: none; }
+.api-card summary::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--text-tertiary);
+  border-bottom: 2px solid var(--text-tertiary);
+  transform: rotate(-45deg);
+  transition: transform 0.2s var(--ease);
+  flex-shrink: 0;
+}
+
+.api-card[open] summary::before { transform: rotate(45deg); }
+.api-card summary:hover { background: var(--surface-alt); }
+
+.api-method {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.api-method.post { background: var(--blue-bg); color: var(--blue); }
+.api-method.get { background: var(--green-bg); color: var(--green); }
+
+.api-endpoint {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.api-card pre {
+  margin: 0;
+  padding: 16px 18px;
+  background: #1a1a2e;
+  color: #c4c9d8;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  border-top: 1px solid var(--border);
+}
+
+[data-theme="dark"] .api-card pre {
+  background: #0d0d12;
+}
+
+.api-links {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.api-links a { font-weight: 500; }
+
+/* ============================================
+   STATES: LOADING, EMPTY, ERROR
+   ============================================ */
+.state-loading {
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--text-tertiary);
+}
+
+.state-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 16px;
+}
+
+.state-loading p { font-size: 13px; font-weight: 500; }
+
+.state-empty {
+  text-align: center;
+  padding: 64px 20px;
+}
+
+.state-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+}
+
+.state-empty h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.state-empty p { font-size: 13px; color: var(--text-secondary); }
+
+.state-error {
+  text-align: center;
+  padding: 56px 20px;
+}
+
+.state-error-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  background: var(--red-bg);
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.state-error h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.state-error p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.btn-retry {
+  margin-top: 16px;
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-retry:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ============================================
+   PAGINATION
+   ============================================ */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+
+.pagination button {
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
+.pagination .pg-info { font-size: 13px; color: var(--text-secondary); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ============================================
+   TOAST
+   ============================================ */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 24px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.35s var(--ease-bounce);
+  pointer-events: none;
+  box-shadow: var(--shadow-xl);
+  white-space: nowrap;
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============================================
+   SCROLL TOP
+   ============================================ */
+.scroll-top {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 42px;
+  height: 42px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 90;
+  opacity: 0;
+  transform: translateY(20px) scale(0.8);
+  transition: all 0.3s var(--ease-bounce);
+  pointer-events: none;
+  box-shadow: var(--shadow-lg);
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.scroll-top.visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.scroll-top:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+/* ============================================
+   WELCOME STATE
+   ============================================ */
+.welcome {
+  text-align: center;
+  padding: 40px 20px 32px;
+}
+
+.welcome-emoji {
+  font-size: 40px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.welcome h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+
+.welcome p { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; }
+
+.quick-chips {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.quick-chip {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s var(--ease);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); transform: translateY(-1px); }
+
+.quick-chip-icon { font-size: 15px; }
+
+/* ============================================
+   BARCODE SCANNER
+   ============================================ */
+.scanner-section {
+  margin-bottom: 20px;
+}
+
+.scanner-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-alt);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  transition: all 0.2s var(--ease);
+  justify-content: center;
+}
+
+.scanner-toggle:hover { border-color: var(--accent); background: var(--accent-bg); }
+
+.scanner-toggle svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.scanner-container {
+  display: none;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  margin-top: 12px;
+  aspect-ratio: 4/3;
+  max-height: 300px;
+}
+
+.scanner-container.active { display: block; animation: fadeUp 0.3s var(--ease); }
+
+.scanner-container video,
+.scanner-container canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.scanner-frame {
+  width: 65%;
+  aspect-ratio: 3/1;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 8px;
+  position: relative;
+}
+
+.scanner-frame::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: scanLine 2s ease-in-out infinite;
+}
+
+@keyframes scanLine {
+  0%, 100% { transform: translateY(-15px); }
+  50% { transform: translateY(15px); }
+}
+
+.scanner-hint {
+  color: rgba(255,255,255,0.7);
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 12px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.scanner-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: background 0.15s;
+  backdrop-filter: blur(8px);
+}
+
+.scanner-close:hover { background: rgba(0,0,0,0.8); }
+
+.scanner-result {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--green-bg);
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  animation: fadeUp 0.3s var(--ease-bounce);
+}
+
+.scanner-result.show { display: flex; }
+
+.scanner-result svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* ============================================
+   DEPOT MAP
+   ============================================ */
+.depot-map-container {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  background: var(--surface);
+  position: relative;
+}
+
+.depot-map {
+  width: 100%;
+  height: 320px;
+}
+
+.depot-map-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 500;
+  box-shadow: var(--shadow-md);
+}
+
+.depot-map-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.depot-map-toggle svg { width: 14px; height: 14px; }
+
+/* Leaflet custom popup */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+  font-family: var(--font) !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.leaflet-popup-content strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.leaflet-popup-content .popup-market {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+}
+
+.leaflet-popup-content .popup-dist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+[data-theme="dark"] .leaflet-popup-content-wrapper {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .leaflet-popup-tip {
+  background: var(--surface) !important;
+}
+
+/* Dark mode map tiles */
+[data-theme="dark"] .leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1);
+}
+
+[data-theme="dark"] .leaflet-container {
+  background: #1a1a1a;
+}
+
+/* ============================================
+   PRODUCT DETAIL MODAL
+   ============================================ */
+.product-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s var(--ease), visibility 0.3s;
+}
+
+.product-detail-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.product-detail {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-width: 520px;
+  height: 100%;
+  z-index: 2001;
+  background: var(--bg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.15);
+}
+
+.product-detail.active {
+  transform: translateX(0);
+}
+
+.pd-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.pd-back {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 18px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.pd-back:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+
+.pd-header-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pd-content {
+  padding: 20px;
+}
+
+.pd-product-hero {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.pd-product-img {
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius);
+  background: var(--surface-alt);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pd-product-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] .pd-product-img img { mix-blend-mode: normal; }
+
+.pd-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-product-title {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.pd-product-brand {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+
+.pd-product-cat {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.pd-product-id {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-family: monospace;
+  background: var(--surface-alt);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  display: inline-block;
+}
+
+/* Section titles */
+.pd-section {
+  margin-bottom: 20px;
+}
+
+.pd-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-section-title svg {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+/* Price list in detail */
+.pd-price-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pd-price-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+
+.pd-price-row.best-price {
+  border-color: var(--green);
+  background: var(--green-bg);
+}
+
+.pd-price-marker {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.pd-price-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-price-market {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pd-price-depot {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pd-price-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.pd-price-row.best-price .pd-price-value {
+  color: var(--green);
+}
+
+.pd-price-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--green);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.5px;
+}
+
+/* Map in detail */
+.pd-map-container {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.pd-map {
+  width: 100%;
+  height: 260px;
+}
+
+/* Shopping buttons */
+.pd-shop-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd-shop-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s var(--ease);
+  font-family: inherit;
+}
+
+.pd-shop-btn:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.pd-shop-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  flex-shrink: 0;
+  color: white;
+}
+
+.pd-shop-icon.hepsiburada { background: #ff6000; }
+.pd-shop-icon.trendyol { background: #f27a1a; }
+.pd-shop-icon.amazon { background: #232f3e; }
+
+.pd-shop-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.pd-shop-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pd-shop-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.pd-shop-arrow {
+  color: var(--text-tertiary);
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.pd-shop-btn:hover .pd-shop-arrow {
+  transform: translateX(3px);
+  color: var(--accent);
+}
+
+/* Similar button in detail */
+.pd-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pd-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  transition: all 0.15s;
+}
+
+.pd-action-btn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.pd-action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  :root {
+    --header-h: 52px;
+    --tabs-h: 44px;
+  }
+  .header-inner { padding: 0 16px; }
+  .logo { font-size: 16px; }
+  .logo-icon { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; }
+  .main { padding: 20px 16px 100px; }
+  .hero-search { padding: 24px 20px 20px; border-radius: var(--radius-lg); }
+  .hero-title { font-size: 19px; }
+  .search-bar-row { flex-direction: column; }
+  .btn-search { width: 100%; justify-content: center; }
+  .search-card { padding: 18px; }
+  .search-card-title { font-size: 17px; }
+  .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .product-grid { grid-template-columns: 1fr; }
+  .depot-grid { grid-template-columns: 1fr; }
+  .cat-grid { grid-template-columns: 1fr 1fr; }
+  .nav-tab { font-size: 12px; padding: 6px 12px; }
+  .nav-tab .tab-icon { width: 14px; height: 14px; }
+  .nav-tab .tab-icon svg { width: 13px; height: 13px; }
+  .welcome h2 { font-size: 19px; }
+  .results-header h3 { font-size: 14px; }
+  .product-detail { max-width: 100%; }
+  .pd-content { padding: 16px; }
+  .pd-product-hero { padding: 16px; gap: 12px; }
+  .pd-product-img { width: 80px; height: 80px; }
+  .pd-product-title { font-size: 15px; }
+  .pd-map { height: 220px; }
+}
+
+@media (max-width: 480px) {
+  .header-inner { gap: 6px; }
+  .location-pill span { display: none; }
+  .location-pill { padding: 6px 8px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .cat-grid { grid-template-columns: 1fr; }
+  .hero-search { padding: 20px 16px 16px; border-radius: var(--radius); }
+  .hero-title { font-size: 17px; }
+  .search-options { gap: 8px; }
+  .search-opt input { width: 64px; }
+  .quick-chip { font-size: 12px; padding: 6px 12px; }
+  .p-card-img-wrap { width: 72px; height: 72px; }
+  .p-card-body { gap: 12px; padding: 14px; }
+  .p-card-prices { padding: 8px 14px; }
+  .depot-map { height: 240px; }
+  .scanner-container { max-height: 220px; }
+  .btn-action, .btn-search { min-height: 44px; }
+  .nav-tab { min-height: 36px; }
+  .pd-map { height: 200px; }
+  .pd-shop-btn { padding: 12px 14px; }
+  .pd-product-hero { flex-direction: column; align-items: center; text-align: center; }
+  .pd-product-img { width: 120px; height: 120px; }
+}
+
+/* Touch-friendly: increase tap targets */
+@media (hover: none) and (pointer: coarse) {
+  .btn-action, .btn-search, .btn-ghost, .btn-retry { min-height: 44px; }
+  .quick-chip { min-height: 40px; }
+  .nav-tab { min-height: 40px; padding: 8px 14px; }
+  .field input, .field select { min-height: 44px; font-size: 16px; }
+  .search-input-wrap input { min-height: 48px; font-size: 16px; }
+  .search-opt input { min-height: 38px; }
+  .location-pill { min-height: 36px; }
+  .theme-toggle { min-width: 36px; min-height: 36px; }
+  .settings-toggle { min-height: 36px; }
+  .d-card { padding: 14px; }
+  .p-card-prices { gap: 8px; }
+  .price-chip { padding: 5px 12px; }
+}
+
+/* Safe areas for notched phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .main { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(28px + env(safe-area-inset-bottom)); }
+  .scroll-top { bottom: calc(28px + env(safe-area-inset-bottom)); }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">MF</div>
+      <span>Market Fiyati</span>
+    </div>
+    <div class="header-actions">
+      <button class="location-pill" onclick="getMyLocation()" title="Konumu guncelle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="locationText">Ankara</span>
+      </button>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Tema degistir" id="themeBtn">
+        <span id="themeIcon">&#9790;</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- STICKY TABS -->
+<nav class="tabs-bar">
+  <div class="tabs-inner" role="tablist">
+    <button class="nav-tab active" data-tab="search" role="tab" aria-selected="true">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></span>
+      Urun Ara
+    </button>
+    <button class="nav-tab" data-tab="nearest" role="tab" aria-selected="false">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+      Yakin Depolar
+    </button>
+    <button class="nav-tab" data-tab="identity" role="tab" aria-selected="false">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h4M7 12h10M7 16h6"/></svg></span>
+      ID / Barkod
+    </button>
+    <button class="nav-tab" data-tab="similar" role="tab" aria-selected="false">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></span>
+      Benzer Urunler
+    </button>
+    <button class="nav-tab" data-tab="categories" role="tab" aria-selected="false">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+      Kategoriler
+    </button>
+    <button class="nav-tab" data-tab="apiref" role="tab" aria-selected="false">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+      API
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SETTINGS (CORS) -->
+  <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+    API Ayarlari
+  </button>
+  <div class="settings-panel" id="settingsPanel">
+    <label for="proxyUrl">CORS Proxy URL</label>
+    <input type="text" id="proxyUrl" value="" placeholder="https://corsproxy.io/?" />
+    <p class="settings-hint">
+      CORS hatasi aliyorsaniz bir proxy ekleyin. Bos birakirsaniz dogrudan API'ye istek atilir.
+      Ornek: <code>https://corsproxy.io/?</code>
+    </p>
+  </div>
+
+  <!-- TAB 1: SEARCH -->
+  <div class="panel active" id="panel-search" role="tabpanel">
+    <div class="hero-search">
+      <div class="hero-title">Urun Arama</div>
+      <p class="hero-desc">Market fiyatlarini karsilastirmak icin anahtar kelime girin.</p>
+      <div class="search-bar-row">
+        <div class="search-input-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="searchKeywords" value="sut" placeholder="sut, ekmek, patates...">
+        </div>
+        <button class="btn-search" id="btnSearch" onclick="doSearch()"><span class="spinner"></span>Ara</button>
+      </div>
+      <div class="search-options">
+        <div class="search-opt">
+          <label for="searchSize">Sonuc</label>
+          <input type="number" id="searchSize" value="24" min="1" max="100">
+        </div>
+        <div class="search-opt">
+          <label for="searchDistance">Mesafe (km)</label>
+          <input type="number" id="searchDistance" value="3" min="1">
+        </div>
+      </div>
+      <input type="hidden" id="searchPages" value="0">
+    </div>
+
+    <div id="searchWelcome">
+      <div class="welcome">
+        <div class="welcome-emoji">&#128722;</div>
+        <h2>Ne aramak istersiniz?</h2>
+        <p>Yukaridaki alana bir urun adi yazin veya populer aramalara tiklayin.</p>
+        <div class="quick-chips">
+          <button class="quick-chip" onclick="quickSearch('sut')"><span class="quick-chip-icon">&#129371;</span> Sut</button>
+          <button class="quick-chip" onclick="quickSearch('ekmek')"><span class="quick-chip-icon">&#127838;</span> Ekmek</button>
+          <button class="quick-chip" onclick="quickSearch('yumurta')"><span class="quick-chip-icon">&#129370;</span> Yumurta</button>
+          <button class="quick-chip" onclick="quickSearch('peynir')"><span class="quick-chip-icon">&#129472;</span> Peynir</button>
+          <button class="quick-chip" onclick="quickSearch('makarna')"><span class="quick-chip-icon">&#127837;</span> Makarna</button>
+          <button class="quick-chip" onclick="quickSearch('pirinc')"><span class="quick-chip-icon">&#127834;</span> Pirinc</button>
+        </div>
+      </div>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- TAB 2: NEAREST -->
+  <div class="panel" id="panel-nearest" role="tabpanel">
+    <div class="search-card">
+      <div class="search-card-title">Yakindaki Depolar</div>
+      <p class="search-card-desc">Konumunuza gore yakindaki market depolarini listeler.</p>
+      <div class="form-grid">
+        <div class="field">
+          <label for="nearestDistance">Mesafe (km)</label>
+          <input type="number" id="nearestDistance" value="2" min="1">
+        </div>
+      </div>
+      <button class="btn-action" id="btnNearest" onclick="doNearest()"><span class="spinner"></span>Depolari Bul</button>
+    </div>
+    <div class="depot-map-container" id="depotMapContainer" style="display:none">
+      <div class="depot-map" id="depotMap"></div>
+      <button class="depot-map-toggle" id="depotMapToggle" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg>
+        Haritayi Gizle
+      </button>
+    </div>
+    <div id="nearestResults"></div>
+  </div>
+
+  <!-- TAB 3: IDENTITY -->
+  <div class="panel" id="panel-identity" role="tabpanel">
+    <div class="search-card">
+      <div class="search-card-title">ID veya Barkod ile Arama</div>
+      <p class="search-card-desc">Urunu benzersiz ID veya barkod numarasi ile bulun.</p>
+
+      <!-- Barcode Scanner -->
+      <div class="scanner-section">
+        <button class="scanner-toggle" id="scannerToggle" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="8" x2="13" y2="8"/><line x1="7" y1="16" x2="15" y2="16"/></svg>
+          Kamera ile Barkod Tara
+        </button>
+        <div class="scanner-container" id="scannerContainer">
+          <div id="scannerViewport"></div>
+          <div class="scanner-overlay">
+            <div class="scanner-frame"></div>
+            <div class="scanner-hint">Barkodu cerceve icine getirin</div>
+          </div>
+          <button class="scanner-close" id="scannerClose" type="button">&times;</button>
+        </div>
+        <div class="scanner-result" id="scannerResult">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span id="scannerResultText">Barkod okundu!</span>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="identityValue">Urun ID / Barkod</label>
+          <input type="text" id="identityValue" placeholder="Orn: 00000000010CO veya 8690000000001">
+        </div>
+        <div class="field">
+          <label for="identityType">Tur</label>
+          <select id="identityType">
+            <option value="id">ID</option>
+            <option value="barcode">Barkod</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="identityKeywords">Anahtar Kelime (opsiyonel)</label>
+          <input type="text" id="identityKeywords" placeholder="">
+        </div>
+      </div>
+      <button class="btn-action" id="btnIdentity" onclick="doIdentitySearch()"><span class="spinner"></span>Ara</button>
+    </div>
+    <div id="identityResults"></div>
+  </div>
+
+  <!-- TAB 4: SIMILAR -->
+  <div class="panel" id="panel-similar" role="tabpanel">
+    <div class="search-card">
+      <div class="search-card-title">Benzer Urunler</div>
+      <p class="search-card-desc">Bir urune benzer urunleri bulun.</p>
+      <div class="form-grid">
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="similarId">Referans Urun ID</label>
+          <input type="text" id="similarId" placeholder="Urun ID'sini girin">
+        </div>
+        <div class="field">
+          <label for="similarKeywords">Anahtar Kelime</label>
+          <input type="text" id="similarKeywords" value="sut" placeholder="sut, ekmek...">
+        </div>
+        <div class="field">
+          <label for="similarDistance">Mesafe (km)</label>
+          <input type="number" id="similarDistance" value="3" min="1">
+        </div>
+      </div>
+      <button class="btn-action" id="btnSimilar" onclick="doSimilarSearch()"><span class="spinner"></span>Benzer Urunleri Bul</button>
+    </div>
+    <div id="similarResults"></div>
+  </div>
+
+  <!-- TAB 5: CATEGORIES -->
+  <div class="panel" id="panel-categories" role="tabpanel">
+    <div class="search-card">
+      <div class="search-card-title">Urun Kategorileri</div>
+      <p class="search-card-desc">Tum mevcut urun kategorilerini ve alt kategorileri listeler.</p>
+      <button class="btn-action" id="btnCategories" onclick="doCategories()"><span class="spinner"></span>Kategorileri Yukle</button>
+    </div>
+    <div id="categoriesResults"></div>
+  </div>
+
+  <!-- TAB 6: API REF -->
+  <div class="panel" id="panel-apiref" role="tabpanel">
+    <div class="search-card" style="margin-bottom:16px">
+      <div class="search-card-title">API Referansi</div>
+      <p class="search-card-desc" style="margin-bottom:0">
+        Base URL: <code>https://api.marketfiyati.org.tr</code>
+      </p>
+    </div>
+
+    <div class="api-card">
+      <p class="api-links">
+        Kaynak Repolar:
+        <a href="https://github.com/mtcnbzks/market-fiyati-mcp-server" target="_blank" rel="noopener">mtcnbzks</a> &middot;
+        <a href="https://github.com/yibudak/marketfiyati_mcp" target="_blank" rel="noopener">yibudak</a> &middot;
+        <a href="https://github.com/aigile-era/market-mcp-serkan" target="_blank" rel="noopener">aigile-era</a>
+      </p>
+    </div>
+
+    <details class="api-card" open>
+      <summary><span class="api-method post">POST</span> <span class="api-endpoint">/api/v2/search</span></summary>
+<pre>{
+  "keywords": "sut",
+  "pages": 0,
+  "size": 24,
+  "latitude": 39.9334,
+  "longitude": 32.8597,
+  "distance": 3,
+  "depots": ["bim-U751"],   // Opsiyonel
+  "menuCategory": true       // Opsiyonel
+}</pre>
+    </details>
+
+    <details class="api-card">
+      <summary><span class="api-method post">POST</span> <span class="api-endpoint">/api/v2/nearest</span></summary>
+<pre>{
+  "latitude": 39.9334,
+  "longitude": 32.8597,
+  "distance": 1
+}
+// Yanit: [ { id, sellerName, location, marketName, distance } ]</pre>
+    </details>
+
+    <details class="api-card">
+      <summary><span class="api-method post">POST</span> <span class="api-endpoint">/api/v2/searchByIdentity</span></summary>
+<pre>{
+  "identity": "product-id-or-barcode",
+  "identityType": "id",     // "id" veya "barcode"
+  "keywords": "",
+  "latitude": 39.9334,
+  "longitude": 32.8597,
+  "distance": 1
+}</pre>
+    </details>
+
+    <details class="api-card">
+      <summary><span class="api-method post">POST</span> <span class="api-endpoint">/api/v2/searchSmilarProduct</span></summary>
+<pre>{
+  "id": "referans-urun-id",
+  "keywords": "sut",
+  "latitude": 39.9334,
+  "longitude": 32.8597,
+  "distance": 1
+}</pre>
+    </details>
+
+    <details class="api-card">
+      <summary><span class="api-method get">GET</span> <span class="api-endpoint">/api/v1/info/categories</span></summary>
+<pre>// Parametre gerektirmez.
+{
+  "content": [
+    { "name": "Sut Urunleri", "subcategories": ["Sut", "Yogurt", ...] }
+  ]
+}</pre>
+    </details>
+
+    <details class="api-card">
+      <summary>Ortak Yanit Yapisi</summary>
+<pre>{
+  "numberOfFound": 42,
+  "content": [{ "id":"...", "title":"...", "brand":"...",
+    "productDepotInfoList": [{ "price": 42.50, "marketAdi": "bim", ... }]
+  }],
+  "facetMap": { "market_names": [...], "brand": [...], "main_category": [...] }
+}</pre>
+    </details>
+  </div>
+
+</div>
+
+<!-- Product Detail Overlay -->
+<div class="product-detail-overlay" id="pdOverlay"></div>
+<div class="product-detail" id="productDetail">
+  <div class="pd-header">
+    <button class="pd-back" id="pdBack" type="button">&#8592;</button>
+    <div class="pd-header-title" id="pdHeaderTitle">Urun Detayi</div>
+  </div>
+  <div class="pd-content" id="pdContent"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Scroll top -->
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Yukari git">&#8593;</button>
+
+<script>
+/* ============================================
+   UTILITIES
+   ============================================ */
+function escapeHtml(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(function() { el.classList.remove('show'); }, 3000);
+}
+
+/* ============================================
+   STATE
+   ============================================ */
+var state = { lat: 39.9334, lon: 32.8597 };
+var API_BASE = 'https://api.marketfiyati.org.tr';
+
+function getProxy() { return document.getElementById('proxyUrl').value.trim(); }
+
+function apiUrl(path) {
+  var proxy = getProxy();
+  var url = API_BASE + path;
+  return proxy ? proxy + encodeURIComponent(url) : url;
+}
+
+var HEADERS = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+
+var MARKET_COLORS = {
+  bim: '#e30613', a101: '#0054a6', sok: '#f5a623', migros: '#f37021',
+  carrefoursa: '#1a4d8f', tarim_kredi: '#4caf50', file: '#00b8d4',
+  hakmar: '#8bc34a', onur: '#ff5722'
+};
+
+function marketColor(name) {
+  var n = (name || '').toLowerCase();
+  for (var k in MARKET_COLORS) { if (n.indexOf(k) !== -1) return MARKET_COLORS[k]; }
+  return '#888';
+}
+
+function marketLabel(name) { return (name || 'N/A').toUpperCase().replace(/_/g, ' '); }
+
+/* ============================================
+   THEME
+   ============================================ */
+function toggleTheme() {
+  var html = document.documentElement;
+  var isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeIcon').innerHTML = isDark ? '&#9790;' : '&#9728;';
+  try { localStorage.setItem('theme', isDark ? 'light' : 'dark'); } catch(e) {}
+}
+
+(function() {
+  try {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.getElementById('themeIcon').innerHTML = '&#9728;';
+    }
+  } catch(e) {}
+})();
+
+/* ============================================
+   SETTINGS TOGGLE
+   ============================================ */
+function toggleSettings() {
+  var panel = document.getElementById('settingsPanel');
+  var toggle = document.getElementById('settingsToggle');
+  panel.classList.toggle('open');
+  toggle.classList.toggle('open');
+}
+
+/* ============================================
+   SCROLL TOP
+   ============================================ */
+window.addEventListener('scroll', function() {
+  var btn = document.getElementById('scrollTop');
+  btn.classList.toggle('visible', window.scrollY > 400);
+}, { passive: true });
+
+/* ============================================
+   TABS
+   ============================================ */
+document.querySelectorAll('.nav-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.nav-tab').forEach(function(t) {
+      t.classList.remove('active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ============================================
+   ENTER KEY BINDING
+   ============================================ */
+function bindEnter(id, fn) {
+  document.getElementById(id).addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); fn(); }
+  });
+}
+
+bindEnter('searchKeywords', doSearch);
+bindEnter('searchSize', doSearch);
+bindEnter('searchDistance', doSearch);
+bindEnter('nearestDistance', doNearest);
+bindEnter('identityValue', doIdentitySearch);
+bindEnter('identityKeywords', doIdentitySearch);
+bindEnter('similarId', doSimilarSearch);
+bindEnter('similarKeywords', doSimilarSearch);
+bindEnter('similarDistance', doSimilarSearch);
+
+/* ============================================
+   LOCATION
+   ============================================ */
+function getMyLocation() {
+  if (!navigator.geolocation) { showToast('Konum desteklenmiyor'); return; }
+  document.getElementById('locationText').textContent = '...';
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    state.lat = pos.coords.latitude;
+    state.lon = pos.coords.longitude;
+    document.getElementById('locationText').textContent = state.lat.toFixed(2) + ', ' + state.lon.toFixed(2);
+    showToast('Konum guncellendi');
+  }, function() {
+    document.getElementById('locationText').textContent = 'Ankara';
+    showToast('Konum alinamadi');
+  });
+}
+
+/* ============================================
+   API HELPERS
+   ============================================ */
+async function apiPost(path, body) {
+  var r = await fetch(apiUrl(path), { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+async function apiGet(path) {
+  var r = await fetch(apiUrl(path), { headers: HEADERS });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+function setBtnLoading(id, on) {
+  var b = document.getElementById(id);
+  if (!b) return;
+  b.classList.toggle('loading', on);
+  b.disabled = on;
+}
+
+function showLoading(el) {
+  el.innerHTML = '<div class="state-loading"><div class="spinner"></div><p>Yukleniyor...</p></div>';
+}
+
+function showError(el, err, retry) {
+  var cors = err.message.indexOf('Failed to fetch') !== -1 || err.message.indexOf('NetworkError') !== -1;
+  el.innerHTML = '<div class="state-error">' +
+    '<div class="state-error-icon">!</div>' +
+    '<h4>' + escapeHtml(err.message) + '</h4>' +
+    '<p>' + (cors ? 'CORS hatasi. Sayfanin ustundeki "API Ayarlari" kismina bir proxy URL ekleyin.' : 'Bir hata olustu. Tekrar deneyin.') + '</p>' +
+    (retry ? '<button class="btn-retry" id="retryBtn">Tekrar Dene</button>' : '') +
+    '</div>';
+  if (retry) document.getElementById('retryBtn').addEventListener('click', retry);
+}
+
+function showEmpty(el, msg) {
+  el.innerHTML = '<div class="state-empty">' +
+    '<div class="state-empty-icon">&#128270;</div>' +
+    '<h4>' + escapeHtml(msg || 'Sonuc bulunamadi') + '</h4>' +
+    '<p>Farkli anahtar kelimeler veya daha genis mesafe deneyin.</p></div>';
+}
+
+function onImgError(img) {
+  img.onerror = null;
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect fill="#f0f0f2" width="80" height="80" rx="12"/><text x="40" y="48" text-anchor="middle" font-size="28" fill="#aeaeb2">?</text></svg>');
+}
+
+/* ============================================
+   RENDER PRODUCTS
+   ============================================ */
+var _productCache = {};
+
+function renderProducts(container, data, pgConfig) {
+  if (!data || !data.content || data.content.length === 0) return showEmpty(container);
+
+  var total = data.numberOfFound || 0;
+  var html = '<div class="results-header"><h3>Sonuclar</h3><span class="results-badge">' + total.toLocaleString('tr-TR') + ' urun</span></div>';
+
+  // Facets
+  if (data.facetMap) {
+    var fm = data.facetMap, chips = [];
+    if (fm.market_names) fm.market_names.slice(0,6).forEach(function(f) { chips.push(escapeHtml(f.name) + ' (' + f.count + ')'); });
+    if (fm.brand) fm.brand.slice(0,4).forEach(function(f) { chips.push(escapeHtml(f.name)); });
+    if (chips.length) html += '<div class="chip-row">' + chips.map(function(c) { return '<span class="chip">' + c + '</span>'; }).join('') + '</div>';
+  }
+
+  html += '<div class="product-grid">';
+
+  data.content.forEach(function(p) {
+    // Cache product data for detail view
+    if (p.id) _productCache[p.id] = p;
+
+    var depots = (p.productDepotInfoList || []).filter(function(d) { return d.price > 0; });
+    var sorted = depots.slice().sort(function(a,b) { return a.price - b.price; });
+    var lowest = sorted.length ? sorted[0].price : null;
+
+    var priceHtml = '';
+    var shown = new Set();
+    sorted.forEach(function(d) {
+      var key = d.marketAdi + '-' + d.price;
+      if (shown.has(key) || shown.size >= 4) return;
+      shown.add(key);
+      var best = d.price === lowest;
+      priceHtml += '<span class="price-chip ' + (best ? 'best' : '') + '">' +
+        '<span class="market-dot" style="background:' + marketColor(d.marketAdi) + '">' + escapeHtml((d.marketAdi || '?')[0].toUpperCase()) + '</span>' +
+        escapeHtml(d.price.toFixed(2)) + ' &#8378;</span>';
+    });
+
+    var t = escapeHtml(p.title || '');
+    var b = escapeHtml(p.brand || '');
+    var w = escapeHtml(p.refinedVolumeOrWeight || '');
+    var cats = (p.categories || []).map(escapeHtml).join(' > ');
+    var id = escapeHtml(p.id || '');
+
+    html += '<div class="p-card" data-id="' + id + '" style="cursor:pointer">' +
+      '<div class="p-card-body">' +
+        '<div class="p-card-img-wrap"><img class="p-card-img" src="' + escapeHtml(p.imageUrl || '') + '" alt="' + t + '" onerror="onImgError(this)" loading="lazy"></div>' +
+        '<div class="p-card-info">' +
+          '<div class="p-card-title">' + t + '</div>' +
+          '<div class="p-card-subtitle">' + b + (w ? ' &middot; ' + w : '') + '</div>' +
+          (cats ? '<div class="p-card-meta">' + cats + '</div>' : '') +
+          '<div class="p-card-actions"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="p-card-prices">' + (priceHtml || '<span class="no-price">Fiyat bilgisi yok</span>') + '</div>' +
+    '</div>';
+  });
+
+  html += '</div>';
+
+  // Pagination
+  if (pgConfig) {
+    var pg = pgConfig.page;
+    var sz = pgConfig.size;
+    var tp = Math.ceil(total / sz);
+    if (tp > 1) {
+      html += '<div class="pagination">' +
+        '<button ' + (pg === 0 ? 'disabled' : '') + ' id="pgPrev">&#8592; Onceki</button>' +
+        '<span class="pg-info">' + (pg+1) + ' / ' + tp + '</span>' +
+        '<button ' + (pg >= tp-1 ? 'disabled' : '') + ' id="pgNext">Sonraki &#8594;</button></div>';
+    }
+  }
+
+  container.innerHTML = html;
+
+  // Bind card clicks and similar buttons
+  container.querySelectorAll('.p-card').forEach(function(card) {
+    var pid = card.getAttribute('data-id');
+    var titleEl = card.querySelector('.p-card-title');
+    var title = titleEl ? titleEl.textContent : '';
+    var actions = card.querySelector('.p-card-actions');
+
+    // Click on card => open product detail
+    card.addEventListener('click', function() {
+      openProductDetail(pid);
+    });
+
+    if (actions && pid) {
+      var btn = document.createElement('button');
+      btn.className = 'btn-ghost';
+      btn.textContent = 'Benzer Urunler';
+      btn.addEventListener('click', function(e) { e.stopPropagation(); findSimilar(pid, title); });
+      actions.appendChild(btn);
+    }
+  });
+
+  // Bind pagination
+  if (pgConfig) {
+    var prev = document.getElementById('pgPrev');
+    var next = document.getElementById('pgNext');
+    if (prev) prev.addEventListener('click', function() { pgConfig.goToPage(pgConfig.page - 1); });
+    if (next) next.addEventListener('click', function() { pgConfig.goToPage(pgConfig.page + 1); });
+  }
+}
+
+/* ============================================
+   QUICK SEARCH
+   ============================================ */
+function quickSearch(term) {
+  document.getElementById('searchKeywords').value = term;
+  doSearch();
+}
+
+/* ============================================
+   1. SEARCH
+   ============================================ */
+async function doSearch(page) {
+  var el = document.getElementById('searchResults');
+  var welcome = document.getElementById('searchWelcome');
+  if (welcome) welcome.style.display = 'none';
+
+  var pg = (typeof page === 'number') ? page : (parseInt(document.getElementById('searchPages').value) || 0);
+  var sz = parseInt(document.getElementById('searchSize').value) || 24;
+
+  setBtnLoading('btnSearch', true);
+  showLoading(el);
+  try {
+    var data = await apiPost('/api/v2/search', {
+      keywords: document.getElementById('searchKeywords').value,
+      pages: pg, size: sz,
+      latitude: state.lat, longitude: state.lon,
+      distance: parseInt(document.getElementById('searchDistance').value) || 3,
+    });
+    renderProducts(el, data, {
+      page: pg, size: sz,
+      goToPage: function(p) {
+        document.getElementById('searchPages').value = p;
+        doSearch(p);
+        window.scrollTo({ top: el.offsetTop - 120, behavior: 'smooth' });
+      }
+    });
+  } catch(e) { showError(el, e, doSearch); }
+  finally { setBtnLoading('btnSearch', false); }
+}
+
+/* ============================================
+   2. NEAREST (with Leaflet map)
+   ============================================ */
+var depotMap = null;
+var depotMarkers = [];
+
+function initDepotMap(depots) {
+  var container = document.getElementById('depotMapContainer');
+  var mapEl = document.getElementById('depotMap');
+  var toggleBtn = document.getElementById('depotMapToggle');
+
+  container.style.display = 'block';
+
+  // Destroy previous map if exists
+  if (depotMap) {
+    depotMap.remove();
+    depotMap = null;
+  }
+  depotMarkers = [];
+
+  // Initialize map centered on user location
+  depotMap = L.map(mapEl, {
+    zoomControl: true,
+    scrollWheelZoom: true,
+    attributionControl: false
+  }).setView([state.lat, state.lon], 14);
+
+  // Add tile layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(depotMap);
+
+  // Add attribution in bottom-left
+  L.control.attribution({ position: 'bottomleft' }).addTo(depotMap);
+
+  // User location marker (blue pulse)
+  var userIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: '<div style="width:14px;height:14px;background:var(--blue,#0071e3);border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(0,113,227,0.25),0 2px 6px rgba(0,0,0,0.3);"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  });
+  L.marker([state.lat, state.lon], { icon: userIcon, zIndex: 1000 })
+    .addTo(depotMap)
+    .bindPopup('<strong>Konumunuz</strong>');
+
+  var bounds = L.latLngBounds([[state.lat, state.lon]]);
+
+  // Add depot markers
+  depots.forEach(function(d) {
+    var loc = d.location || {};
+    if (!loc.lat || !loc.lon) return;
+
+    var color = marketColor(d.marketName);
+    var mkt = marketLabel(d.marketName);
+    var abbr = mkt.length > 2 ? mkt.substring(0, 2) : mkt;
+    var dist = d.distance < 1000 ? Math.round(d.distance) + ' m' : (d.distance / 1000).toFixed(1) + ' km';
+
+    var markerIcon = L.divIcon({
+      className: 'depot-pin',
+      html: '<div style="width:32px;height:32px;background:' + color + ';border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:800;font-family:Inter,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.3);letter-spacing:0.5px;">' + escapeHtml(abbr) + '</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -18]
+    });
+
+    var popupContent = '<div class="popup-market" style="color:' + color + '">' + escapeHtml(mkt) + '</div>' +
+      '<strong>' + escapeHtml(d.sellerName || d.id) + '</strong>' +
+      '<div class="popup-dist">' + escapeHtml(dist) + ' uzaklikta</div>';
+
+    var marker = L.marker([loc.lat, loc.lon], { icon: markerIcon })
+      .addTo(depotMap)
+      .bindPopup(popupContent);
+
+    depotMarkers.push(marker);
+    bounds.extend([loc.lat, loc.lon]);
+  });
+
+  // Fit map to show all markers
+  if (depotMarkers.length > 0) {
+    depotMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+  }
+
+  // Fix map rendering after container becomes visible
+  setTimeout(function() { depotMap.invalidateSize(); }, 200);
+
+  // Map toggle button
+  var mapVisible = true;
+  toggleBtn.onclick = function() {
+    mapVisible = !mapVisible;
+    mapEl.style.display = mapVisible ? 'block' : 'none';
+    toggleBtn.innerHTML = (mapVisible
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg> Haritayi Gizle'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg> Haritayi Goster');
+    if (mapVisible) {
+      setTimeout(function() { depotMap.invalidateSize(); }, 100);
+    }
+  };
+}
+
+async function doNearest() {
+  var el = document.getElementById('nearestResults');
+  setBtnLoading('btnNearest', true);
+  showLoading(el);
+  try {
+    var data = await apiPost('/api/v2/nearest', {
+      latitude: state.lat, longitude: state.lon,
+      distance: parseInt(document.getElementById('nearestDistance').value) || 2,
+    });
+
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      document.getElementById('depotMapContainer').style.display = 'none';
+      return showEmpty(el, 'Yakinda depo bulunamadi.');
+    }
+
+    data.sort(function(a, b) { return a.distance - b.distance; });
+
+    // Initialize map with depot data
+    if (typeof L !== 'undefined') {
+      try { initDepotMap(data); } catch(mapErr) { console.warn('Harita yuklenemedi:', mapErr); }
+    }
+
+    var html = '<div class="results-header"><h3>Yakindaki Depolar</h3><span class="results-badge">' + data.length + ' depo</span></div><div class="depot-grid">';
+
+    data.forEach(function(d) {
+      var dist = d.distance < 1000 ? Math.round(d.distance) + ' m' : (d.distance / 1000).toFixed(1) + ' km';
+      var color = marketColor(d.marketName);
+      var mkt = marketLabel(d.marketName);
+      var abbr = mkt.length > 3 ? mkt.substring(0, 2) : mkt.substring(0, 3);
+      var loc = d.location || {};
+      var hasCoords = loc.lat && loc.lon;
+      var mapUrl = hasCoords ? 'https://www.google.com/maps?q=' + loc.lat + ',' + loc.lon : '';
+
+      html += '<div class="d-card">' +
+        '<div class="d-card-marker" style="background:' + color + '">' + escapeHtml(abbr) + '</div>' +
+        '<div class="d-card-info">' +
+          '<div class="d-card-market">' + escapeHtml(mkt) + '</div>' +
+          '<div class="d-card-name">' + escapeHtml(d.sellerName || d.id) + '</div>' +
+          '<div class="d-card-dist">' + escapeHtml(dist) + ' uzaklikta</div>' +
+          '<div class="d-card-actions">' +
+            (mapUrl ? '<a class="d-card-link" href="' + mapUrl + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Haritada Goster</a>' : '') +
+          '</div>' +
+          '<div class="d-card-id">' + escapeHtml(d.id) + '</div>' +
+        '</div></div>';
+    });
+
+    html += '</div>';
+    el.innerHTML = html;
+  } catch(e) { showError(el, e, doNearest); }
+  finally { setBtnLoading('btnNearest', false); }
+}
+
+/* ============================================
+   3. IDENTITY
+   ============================================ */
+async function doIdentitySearch() {
+  var el = document.getElementById('identityResults');
+  var val = document.getElementById('identityValue').value.trim();
+  if (!val) { showToast('Lutfen bir ID veya barkod girin'); document.getElementById('identityValue').focus(); return; }
+  setBtnLoading('btnIdentity', true);
+  showLoading(el);
+  try {
+    var body = { identity: val, identityType: document.getElementById('identityType').value, latitude: state.lat, longitude: state.lon, distance: 3 };
+    var kw = document.getElementById('identityKeywords').value.trim();
+    if (kw) body.keywords = kw;
+    var data = await apiPost('/api/v2/searchByIdentity', body);
+    renderProducts(el, data);
+  } catch(e) { showError(el, e, doIdentitySearch); }
+  finally { setBtnLoading('btnIdentity', false); }
+}
+
+/* ============================================
+   4. SIMILAR
+   ============================================ */
+async function doSimilarSearch() {
+  var el = document.getElementById('similarResults');
+  var id = document.getElementById('similarId').value.trim();
+  if (!id) { showToast('Lutfen bir urun ID girin'); document.getElementById('similarId').focus(); return; }
+  setBtnLoading('btnSimilar', true);
+  showLoading(el);
+  try {
+    var data = await apiPost('/api/v2/searchSmilarProduct', {
+      id: id, keywords: document.getElementById('similarKeywords').value || '',
+      latitude: state.lat, longitude: state.lon,
+      distance: parseInt(document.getElementById('similarDistance').value) || 3,
+    });
+    renderProducts(el, data);
+  } catch(e) { showError(el, e, doSimilarSearch); }
+  finally { setBtnLoading('btnSimilar', false); }
+}
+
+function findSimilar(productId, title) {
+  document.getElementById('similarId').value = productId;
+  document.getElementById('similarKeywords').value = (title.split(' ')[0] || '');
+  document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('[data-tab="similar"]').classList.add('active');
+  document.querySelector('[data-tab="similar"]').setAttribute('aria-selected','true');
+  document.getElementById('panel-similar').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  doSimilarSearch();
+}
+
+/* ============================================
+   5. CATEGORIES
+   ============================================ */
+async function doCategories() {
+  var el = document.getElementById('categoriesResults');
+  setBtnLoading('btnCategories', true);
+  showLoading(el);
+  try {
+    var data = await apiGet('/api/v1/info/categories');
+    if (!data || !data.content || data.content.length === 0) return showEmpty(el, 'Kategori bulunamadi.');
+
+    var html = '<div class="results-header"><h3>Kategoriler</h3><span class="results-badge">' + data.content.length + ' kategori</span></div><div class="cat-grid">';
+
+    data.content.forEach(function(cat) {
+      var name = escapeHtml(cat.name);
+      var subs = cat.subcategories || [];
+      html += '<div class="c-card" data-category="' + name + '">' +
+        '<div class="c-card-name">' + name + '</div>' +
+        '<div class="c-card-count">' + subs.length + ' alt kategori</div>' +
+        '<div class="c-card-tags">' + subs.map(function(s) {
+          return '<span class="c-tag">' + escapeHtml(s) + '</span>';
+        }).join('') + '</div></div>';
+    });
+
+    html += '</div>';
+    el.innerHTML = html;
+
+    el.querySelectorAll('.c-card').forEach(function(card) {
+      card.addEventListener('click', function() { searchCategory(this.getAttribute('data-category')); });
+    });
+  } catch(e) { showError(el, e, doCategories); }
+  finally { setBtnLoading('btnCategories', false); }
+}
+
+function searchCategory(name) {
+  document.getElementById('searchKeywords').value = name;
+  document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelector('[data-tab="search"]').classList.add('active');
+  document.querySelector('[data-tab="search"]').setAttribute('aria-selected','true');
+  document.getElementById('panel-search').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  doSearch();
+}
+
+/* ============================================
+   PRODUCT DETAIL PANEL
+   ============================================ */
+var pdMap = null;
+
+function openProductDetail(productId) {
+  var p = _productCache[productId];
+  if (!p) { showToast('Urun verisi bulunamadi'); return; }
+
+  var overlay = document.getElementById('pdOverlay');
+  var detail = document.getElementById('productDetail');
+  var content = document.getElementById('pdContent');
+
+  // Header title
+  document.getElementById('pdHeaderTitle').textContent = p.title || 'Urun Detayi';
+
+  // Build content
+  var html = '';
+
+  // Product hero
+  var t = escapeHtml(p.title || '');
+  var b = escapeHtml(p.brand || '');
+  var w = escapeHtml(p.refinedVolumeOrWeight || '');
+  var cats = (p.categories || []).map(escapeHtml).join(' > ');
+
+  html += '<div class="pd-product-hero">' +
+    '<div class="pd-product-img"><img src="' + escapeHtml(p.imageUrl || '') + '" alt="' + t + '" onerror="onImgError(this)"></div>' +
+    '<div class="pd-product-info">' +
+      '<div class="pd-product-title">' + t + '</div>' +
+      '<div class="pd-product-brand">' + b + (w ? ' &middot; ' + w : '') + '</div>' +
+      (cats ? '<div class="pd-product-cat">' + cats + '</div>' : '') +
+      '<div class="pd-product-id">' + escapeHtml(p.id || '') + '</div>' +
+    '</div>' +
+  '</div>';
+
+  // Price comparison section
+  var depots = (p.productDepotInfoList || []).filter(function(d) { return d.price > 0; });
+  var sorted = depots.slice().sort(function(a, b) { return a.price - b.price; });
+  var lowest = sorted.length ? sorted[0].price : null;
+
+  if (sorted.length > 0) {
+    html += '<div class="pd-section">' +
+      '<div class="pd-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Fiyat Karsilastirmasi</div>' +
+      '<div class="pd-price-list">';
+
+    sorted.forEach(function(d) {
+      var isBest = d.price === lowest;
+      var color = marketColor(d.marketAdi);
+      var mkt = marketLabel(d.marketAdi);
+      var abbr = mkt.length > 2 ? mkt.substring(0, 2) : mkt;
+
+      html += '<div class="pd-price-row' + (isBest ? ' best-price' : '') + '">' +
+        '<div class="pd-price-marker" style="background:' + color + '">' + escapeHtml(abbr) + '</div>' +
+        '<div class="pd-price-info">' +
+          '<div class="pd-price-market">' + escapeHtml(mkt) + '</div>' +
+          '<div class="pd-price-depot">' + escapeHtml(d.sellerName || d.depotId || '') + '</div>' +
+        '</div>' +
+        '<div class="pd-price-value">' + escapeHtml(d.price.toFixed(2)) + ' &#8378;</div>' +
+        (isBest ? '<span class="pd-price-badge">En Ucuz</span>' : '') +
+      '</div>';
+    });
+
+    html += '</div></div>';
+  }
+
+  // Map section - will be populated with nearest depots
+  html += '<div class="pd-section">' +
+    '<div class="pd-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Yakin Marketler</div>' +
+    '<div class="pd-map-container"><div class="pd-map" id="pdMapEl"></div></div>' +
+    '<div id="pdMapStatus" style="text-align:center;padding:12px;font-size:12px;color:var(--text-secondary);">Yakin depolar yukleniyor...</div>' +
+  '</div>';
+
+  // Shopping buttons
+  var searchTerm = encodeURIComponent(p.title || '');
+
+  html += '<div class="pd-section">' +
+    '<div class="pd-section-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Online Ara</div>' +
+    '<div class="pd-shop-buttons">' +
+      '<a class="pd-shop-btn" href="https://www.hepsiburada.com/ara?q=' + searchTerm + '" target="_blank" rel="noopener">' +
+        '<div class="pd-shop-icon hepsiburada">HB</div>' +
+        '<div class="pd-shop-info">' +
+          '<div class="pd-shop-name">Hepsiburada</div>' +
+          '<div class="pd-shop-desc">Hepsiburada\'da bu urunu ara</div>' +
+        '</div>' +
+        '<div class="pd-shop-arrow">&#8594;</div>' +
+      '</a>' +
+      '<a class="pd-shop-btn" href="https://www.trendyol.com/sr?q=' + searchTerm + '" target="_blank" rel="noopener">' +
+        '<div class="pd-shop-icon trendyol">TY</div>' +
+        '<div class="pd-shop-info">' +
+          '<div class="pd-shop-name">Trendyol</div>' +
+          '<div class="pd-shop-desc">Trendyol\'da bu urunu ara</div>' +
+        '</div>' +
+        '<div class="pd-shop-arrow">&#8594;</div>' +
+      '</a>' +
+      '<a class="pd-shop-btn" href="https://www.amazon.com.tr/s?k=' + searchTerm + '" target="_blank" rel="noopener">' +
+        '<div class="pd-shop-icon amazon">AZ</div>' +
+        '<div class="pd-shop-info">' +
+          '<div class="pd-shop-name">Amazon</div>' +
+          '<div class="pd-shop-desc">Amazon Turkiye\'de bu urunu ara</div>' +
+        '</div>' +
+        '<div class="pd-shop-arrow">&#8594;</div>' +
+      '</a>' +
+    '</div>' +
+  '</div>';
+
+  // Actions row
+  html += '<div class="pd-section">' +
+    '<div class="pd-actions">' +
+      '<button class="pd-action-btn" onclick="event.stopPropagation(); closeProductDetail(); findSimilar(\'' + escapeHtml(p.id || '') + '\', \'' + escapeHtml((p.title || '').replace(/'/g, '')) + '\')">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>' +
+        'Benzer Urunler' +
+      '</button>' +
+      '<button class="pd-action-btn" onclick="event.stopPropagation(); closeProductDetail(); document.getElementById(\'identityValue\').value=\'' + escapeHtml(p.id || '') + '\'; document.getElementById(\'identityType\').value=\'id\'; document.querySelector(\'[data-tab=identity]\').click();">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h4M7 12h10M7 16h6"/></svg>' +
+        'ID ile Ara' +
+      '</button>' +
+    '</div>' +
+  '</div>';
+
+  content.innerHTML = html;
+
+  // Show panel
+  overlay.classList.add('active');
+  detail.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  // Collect market names this product is sold at
+  var productMarkets = {};
+  sorted.forEach(function(d) {
+    var mName = (d.marketAdi || '').toLowerCase();
+    if (mName) {
+      if (!productMarkets[mName]) productMarkets[mName] = [];
+      productMarkets[mName].push(d);
+    }
+  });
+
+  // Fetch nearest depots from API using user's actual location, then filter
+  // to only show depots of markets that sell this product
+  setTimeout(function() {
+    loadNearestDepotsForProduct(productMarkets);
+  }, 350);
+}
+
+async function loadNearestDepotsForProduct(productMarkets) {
+  var statusEl = document.getElementById('pdMapStatus');
+  try {
+    var nearestData = await apiPost('/api/v2/nearest', {
+      latitude: state.lat,
+      longitude: state.lon,
+      distance: 5
+    });
+
+    if (!nearestData || !Array.isArray(nearestData) || nearestData.length === 0) {
+      if (statusEl) statusEl.textContent = 'Yakinda depo bulunamadi.';
+      initProductDetailMap([]);
+      return;
+    }
+
+    // Filter: only keep depots whose market sells this product
+    var relevantDepots = nearestData.filter(function(depot) {
+      var depotMarket = (depot.marketName || '').toLowerCase();
+      for (var mk in productMarkets) {
+        if (depotMarket.indexOf(mk) !== -1 || mk.indexOf(depotMarket) !== -1) return true;
+      }
+      return false;
+    });
+
+    // Attach price info from product data to each depot for popup
+    relevantDepots.forEach(function(depot) {
+      var depotMarket = (depot.marketName || '').toLowerCase();
+      for (var mk in productMarkets) {
+        if (depotMarket.indexOf(mk) !== -1 || mk.indexOf(depotMarket) !== -1) {
+          // Use best (lowest) price from this market
+          var prices = productMarkets[mk].sort(function(a, b) { return a.price - b.price; });
+          depot._price = prices[0].price;
+          break;
+        }
+      }
+    });
+
+    if (relevantDepots.length === 0) {
+      if (statusEl) statusEl.textContent = 'Bu urunu satan yakin market bulunamadi.';
+      initProductDetailMap([]);
+    } else {
+      if (statusEl) statusEl.textContent = relevantDepots.length + ' yakin market bulundu';
+      initProductDetailMap(relevantDepots);
+    }
+  } catch(e) {
+    console.warn('Nearest depots fetch error:', e);
+    if (statusEl) statusEl.textContent = 'Depo bilgisi alinamadi.';
+    initProductDetailMap([]);
+  }
+}
+
+function initProductDetailMap(nearestDepots) {
+  var mapEl = document.getElementById('pdMapEl');
+  if (!mapEl) return;
+
+  // Destroy previous map
+  if (pdMap) {
+    pdMap.remove();
+    pdMap = null;
+  }
+
+  if (typeof L === 'undefined') return;
+
+  pdMap = L.map(mapEl, {
+    zoomControl: true,
+    scrollWheelZoom: true,
+    attributionControl: false
+  }).setView([state.lat, state.lon], 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(pdMap);
+
+  // User location marker
+  var userIcon = L.divIcon({
+    className: 'user-location-marker',
+    html: '<div style="width:12px;height:12px;background:var(--blue,#0071e3);border:2.5px solid white;border-radius:50%;box-shadow:0 0 0 3px rgba(0,113,227,0.25),0 2px 4px rgba(0,0,0,0.3);"></div>',
+    iconSize: [17, 17],
+    iconAnchor: [8, 8]
+  });
+  L.marker([state.lat, state.lon], { icon: userIcon, zIndex: 1000 })
+    .addTo(pdMap)
+    .bindPopup('<strong>Konumunuz</strong>');
+
+  var bounds = L.latLngBounds([[state.lat, state.lon]]);
+  var hasMarkers = false;
+
+  // Add nearest depot markers (these have real location.lat/lon from nearest API)
+  nearestDepots.forEach(function(d) {
+    var loc = d.location || {};
+    if (!loc.lat || !loc.lon) return;
+
+    var color = marketColor(d.marketName);
+    var mkt = marketLabel(d.marketName);
+    var abbr = mkt.length > 2 ? mkt.substring(0, 2) : mkt;
+    var dist = d.distance < 1000 ? Math.round(d.distance) + ' m' : (d.distance / 1000).toFixed(1) + ' km';
+
+    var markerIcon = L.divIcon({
+      className: 'depot-pin',
+      html: '<div style="width:28px;height:28px;background:' + color + ';border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:9px;font-weight:800;font-family:Inter,sans-serif;box-shadow:0 2px 6px rgba(0,0,0,0.3);">' + escapeHtml(abbr) + '</div>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      popupAnchor: [0, -16]
+    });
+
+    var popupHtml = '<div class="popup-market" style="color:' + color + '">' + escapeHtml(mkt) + '</div>' +
+      '<strong>' + escapeHtml(d.sellerName || d.id) + '</strong>' +
+      '<div class="popup-dist">' + escapeHtml(dist) + ' uzaklikta</div>' +
+      (d._price ? '<div class="popup-dist" style="font-weight:600;color:var(--green,#1b9e4b)">' + d._price.toFixed(2) + ' &#8378;</div>' : '');
+
+    L.marker([loc.lat, loc.lon], { icon: markerIcon })
+      .addTo(pdMap)
+      .bindPopup(popupHtml);
+
+    bounds.extend([loc.lat, loc.lon]);
+    hasMarkers = true;
+  });
+
+  // Fit bounds to show all markers
+  if (hasMarkers) {
+    pdMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+  }
+
+  setTimeout(function() { pdMap.invalidateSize(); }, 200);
+}
+
+function closeProductDetail() {
+  var overlay = document.getElementById('pdOverlay');
+  var detail = document.getElementById('productDetail');
+  overlay.classList.remove('active');
+  detail.classList.remove('active');
+  document.body.style.overflow = '';
+
+  // Clean up map
+  if (pdMap) {
+    pdMap.remove();
+    pdMap = null;
+  }
+}
+
+// Bind close events
+document.getElementById('pdBack').addEventListener('click', closeProductDetail);
+document.getElementById('pdOverlay').addEventListener('click', closeProductDetail);
+
+// ESC key closes detail
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var detail = document.getElementById('productDetail');
+    if (detail.classList.contains('active')) {
+      closeProductDetail();
+    }
+  }
+});
+
+/* ============================================
+   BARCODE SCANNER (QuaggaJS)
+   ============================================ */
+var scannerActive = false;
+
+function startScanner() {
+  var container = document.getElementById('scannerContainer');
+  var viewport = document.getElementById('scannerViewport');
+  var result = document.getElementById('scannerResult');
+
+  // Hide previous result
+  result.classList.remove('show');
+
+  // Check if Quagga is available
+  if (typeof Quagga === 'undefined') {
+    showToast('Barkod tarayici yuklenemedi. Sayfayi yenileyin.');
+    return;
+  }
+
+  // Check camera support
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast('Kamera erisimi desteklenmiyor.');
+    return;
+  }
+
+  container.classList.add('active');
+  scannerActive = true;
+
+  Quagga.init({
+    inputStream: {
+      name: 'Live',
+      type: 'LiveStream',
+      target: viewport,
+      constraints: {
+        facingMode: 'environment',
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    },
+    decoder: {
+      readers: [
+        'ean_reader',
+        'ean_8_reader',
+        'upc_reader',
+        'upc_e_reader',
+        'code_128_reader',
+        'code_39_reader'
+      ]
+    },
+    locate: true,
+    frequency: 10
+  }, function(err) {
+    if (err) {
+      console.error('Scanner init error:', err);
+      container.classList.remove('active');
+      scannerActive = false;
+      if (err.name === 'NotAllowedError') {
+        showToast('Kamera izni reddedildi. Tarayici ayarlarindan izin verin.');
+      } else if (err.name === 'NotFoundError') {
+        showToast('Kamera bulunamadi.');
+      } else {
+        showToast('Kamera baslatilamadi: ' + (err.message || err.name));
+      }
+      return;
+    }
+    Quagga.start();
+  });
+
+  Quagga.onDetected(function(data) {
+    if (!scannerActive) return;
+
+    var code = data.codeResult.code;
+    if (!code) return;
+
+    // Vibrate on detection (mobile)
+    if (navigator.vibrate) navigator.vibrate(100);
+
+    // Stop scanner
+    stopScanner();
+
+    // Fill the barcode input
+    document.getElementById('identityValue').value = code;
+    document.getElementById('identityType').value = 'barcode';
+
+    // Show result
+    document.getElementById('scannerResultText').textContent = 'Barkod okundu: ' + code;
+    result.classList.add('show');
+
+    // Auto-search after short delay
+    setTimeout(function() {
+      doIdentitySearch();
+    }, 600);
+  });
+}
+
+function stopScanner() {
+  scannerActive = false;
+  try { Quagga.stop(); } catch(e) {}
+  try { Quagga.offDetected(); } catch(e) {}
+  var container = document.getElementById('scannerContainer');
+  container.classList.remove('active');
+
+  // Stop any remaining camera streams
+  var videos = container.querySelectorAll('video');
+  videos.forEach(function(v) {
+    if (v.srcObject) {
+      v.srcObject.getTracks().forEach(function(t) { t.stop(); });
+    }
+  });
+}
+
+// Scanner toggle button
+document.getElementById('scannerToggle').addEventListener('click', function() {
+  if (scannerActive) {
+    stopScanner();
+  } else {
+    startScanner();
+  }
+});
+
+// Scanner close button
+document.getElementById('scannerClose').addEventListener('click', function() {
+  stopScanner();
+});
+
+// Stop scanner when switching tabs
+document.querySelectorAll('.nav-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    if (scannerActive) stopScanner();
+  });
+});
+</script>
+
+</body>
+</html>
