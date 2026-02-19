@@ -2457,17 +2457,29 @@ bindEnter('similarDistance', doSimilarSearch);
    LOCATION
    ============================================ */
 function getMyLocation() {
-  if (!navigator.geolocation) { showToast('Konum desteklenmiyor'); return; }
+  if (!navigator.geolocation) { 
+    showToast('Tarayici konum desteklemiyor'); 
+    return; 
+  }
   document.getElementById('locationText').textContent = '...';
-  navigator.geolocation.getCurrentPosition(function(pos) {
-    state.lat = pos.coords.latitude;
-    state.lon = pos.coords.longitude;
-    document.getElementById('locationText').textContent = state.lat.toFixed(2) + ', ' + state.lon.toFixed(2);
-    showToast('Konum guncellendi');
-  }, function() {
-    document.getElementById('locationText').textContent = 'Ankara';
-    showToast('Konum alinamadi');
-  });
+  var opts = { timeout: 10000, enableHighAccuracy: false, maximumAge: 0 };
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      state.lat = pos.coords.latitude;
+      state.lon = pos.coords.longitude;
+      document.getElementById('locationText').textContent = state.lat.toFixed(2) + ', ' + state.lon.toFixed(2);
+      showToast('Konum guncellendi');
+    }, 
+    function(err) {
+      document.getElementById('locationText').textContent = 'Ankara';
+      var msg = 'Konum alinamadi';
+      if (err.code === 1) msg = 'Konum izni reddedildi';
+      else if (err.code === 2) msg = 'Konum servisi kullanilabilir degil';
+      else if (err.code === 3) msg = 'Konum alma zaman asimi';
+      showToast(msg);
+    },
+    opts
+  );
 }
 
 /* ============================================
