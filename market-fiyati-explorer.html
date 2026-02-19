@@ -2475,13 +2475,15 @@ a:hover { text-decoration: underline; }
   </button>
   <div class="settings-panel" id="settingsPanel">
     <label for="proxyUrl">CORS Proxy URL</label>
-    <input type="text" id="proxyUrl" value="https://test.cors.workers.dev/?" placeholder="https://test.cors.workers.dev/?" />
+    <input type="text" id="proxyUrl" value="https://api.allorigins.win/raw?url=" placeholder="https://api.allorigins.win/raw?url=" />
     <p class="settings-hint">
       CORS hatasi aliyorsaniz asagidaki alternatif proxy'lerden birini deneyin:<br>
-      • <code>https://test.cors.workers.dev/?</code> (Cloudflare, önerilen)<br>
-      • <code>https://cors.x2u.in/</code><br>
-      • <code>https://api.allorigins.win/raw?url=</code><br>
-      Not: Bos birakirsaniz dogrudan API'ye istek atilir.
+      • <code>https://api.allorigins.win/raw?url=</code> (önerilen, API key gerektirmez)<br>
+      • <code>https://test.cors.workers.dev/?</code> (Cloudflare)<br>
+      • <code>https://cors.x2u.in/</code> (basit, kimlik doğrulama yok)<br>
+      <br>
+      <strong>Not:</strong> Email/API key gerektiren proxy'lerde @ karakterini %40 olarak encode edin.<br>
+      Ornek: <code>name%40email.com</code>
     </p>
   </div>
 
