@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saklı Tiyatrolar — Antik Kent Haritası</title>
+<meta name="description" content="Kyaneai benzeri, tiyatrosu olan, keşfedilmemiş Anadolu antik kentleri haritası">
+<link href="https://api.fontshare.com/v2/css?f[]=zodiak@400,500,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --font-display: 'Zodiak', Georgia, serif;
+  --font-body: 'Satoshi', -apple-system, sans-serif;
+
+  /* Dark theme (default) */
+  --bg-primary: #1a1714;
+  --bg-secondary: #231f1b;
+  --bg-card: #2a2520;
+  --bg-card-hover: #342e28;
+  --bg-card-active: #3d352e;
+  --text-primary: #f0e6d6;
+  --text-secondary: #b8a992;
+  --text-muted: #8a7d6f;
+  --accent: #c49a5c;
+  --accent-dim: #9a7a4a;
+  --border: #3a332c;
+  --border-light: #4a423a;
+  --shadow: rgba(0,0,0,0.4);
+  --map-style: https://tiles.openfreemap.org/styles/dark;
+
+  /* Access colors */
+  --access-uzak: #5fa87a;
+  --access-orta: #5b8fd4;
+  --access-kolay: #d45b5b;
+  --access-uzak-bg: rgba(95,168,122,0.12);
+  --access-orta-bg: rgba(91,143,212,0.12);
+  --access-kolay-bg: rgba(212,91,91,0.12);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f0e8;
+  --bg-secondary: #ebe4d9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8f4ee;
+  --bg-card-active: #f0ebe3;
+  --text-primary: #2a2420;
+  --text-secondary: #5c5248;
+  --text-muted: #8a7d6f;
+  --accent: #a07838;
+  --accent-dim: #c49a5c;
+  --border: #ddd5c8;
+  --border-light: #ccc3b5;
+  --shadow: rgba(0,0,0,0.08);
+  --map-style: https://tiles.openfreemap.org/styles/positron;
+
+  --access-uzak: #3a8a56;
+  --access-orta: #3570b8;
+  --access-kolay: #c0392b;
+  --access-uzak-bg: rgba(58,138,86,0.08);
+  --access-orta-bg: rgba(53,112,184,0.08);
+  --access-kolay-bg: rgba(192,57,43,0.08);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout */
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 420px;
+  min-width: 420px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  z-index: 10;
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+}
+
+.sidebar.hidden {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* Header */
+.sidebar-header {
+  padding: 20px 20px 0;
+  flex-shrink: 0;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.site-title {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+.icon-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+.site-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 14px;
+  max-width: 360px;
+}
+
+/* Search */
+.search-wrap {
+  position: relative;
+  margin-bottom: 12px;
+  padding: 0 20px;
+}
+.search-icon {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-input::placeholder { color: var(--text-muted); }
+.search-input:focus { border-color: var(--accent); }
+
+/* Filter chips */
+.filter-section {
+  padding: 0 20px;
+  margin-bottom: 6px;
+}
+.filter-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.chip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+.chip:hover {
+  border-color: var(--accent-dim);
+  color: var(--text-primary);
+}
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1714;
+  font-weight: 600;
+}
+
+/* Cards list */
+.cards-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) transparent;
+}
+.cards-list::-webkit-scrollbar { width: 5px; }
+.cards-list::-webkit-scrollbar-track { background: transparent; }
+.cards-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+.site-card {
+  padding: 14px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 4px;
+}
+.site-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border);
+}
+.site-card.active {
+  background: var(--bg-card-active);
+  border-color: var(--accent-dim);
+}
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #1a1714;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--font-body);
+}
+.card-info { flex: 1; min-width: 0; }
+.card-name {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+.card-region {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+.card-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding-left: 38px;
+}
+.access-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.access-tag.uzak { background: var(--access-uzak-bg); color: var(--access-uzak); }
+.access-tag.orta { background: var(--access-orta-bg); color: var(--access-orta); }
+.access-tag.kolay { background: var(--access-kolay-bg); color: var(--access-kolay); }
+
+.free-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(95,168,122,0.1);
+  color: var(--access-uzak);
+}
+
+.card-vibe {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-left: 38px;
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.counter {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.counter strong {
+  color: var(--accent);
+}
+.footer-link {
+  display: block;
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-link:hover { color: var(--accent); }
+
+/* Map container */
+.map-container {
+  flex: 1;
+  position: relative;
+  height: 100vh;
+}
+#map { width: 100%; height: 100%; }
+
+/* Sidebar toggle */
+.sidebar-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 2px 8px var(--shadow);
+  transition: all 0.2s;
+}
+.sidebar-toggle:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+.sidebar-toggle.hide-toggle {
+  display: none !important;
+}
+
+/* Legend */
+.map-legend {
+  position: absolute;
+  bottom: 32px;
+  right: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  z-index: 5;
+  box-shadow: 0 2px 12px var(--shadow);
+}
+.legend-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+.legend-item:last-child { margin-bottom: 0; }
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+.legend-dot.uzak { border-color: var(--access-uzak); background: rgba(95,168,122,0.25); }
+.legend-dot.orta { border-color: var(--access-orta); background: rgba(91,143,212,0.25); }
+.legend-dot.kolay { border-color: var(--access-kolay); background: rgba(212,91,91,0.25); }
+
+/* Map popup */
+.maplibregl-popup-content {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  padding: 18px 20px !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-body) !important;
+  box-shadow: 0 8px 32px var(--shadow) !important;
+  max-width: 320px !important;
+  min-width: 260px !important;
+}
+.maplibregl-popup-close-button {
+  color: var(--text-muted) !important;
+  font-size: 20px !important;
+  right: 10px !important;
+  top: 10px !important;
+}
+.maplibregl-popup-close-button:hover { color: var(--text-primary) !important; }
+.maplibregl-popup-tip {
+  border-top-color: var(--bg-card) !important;
+}
+
+.popup-name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.popup-region {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.popup-detail {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.popup-detail strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.popup-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.popup-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card-hover);
+  color: var(--text-secondary);
+  font-size: 0.73rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.popup-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Marker styles */
+.custom-marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2.5px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.custom-marker.uzak {
+  border-color: var(--access-uzak);
+  background: rgba(95,168,122,0.35);
+}
+.custom-marker.orta {
+  border-color: var(--access-orta);
+  background: rgba(91,143,212,0.35);
+}
+.custom-marker.kolay {
+  border-color: var(--access-kolay);
+  background: rgba(212,91,91,0.35);
+}
+.custom-marker:hover {
+  transform: scale(1.4);
+  z-index: 10;
+}
+.custom-marker.active-marker {
+  transform: scale(1.6);
+  z-index: 10;
+  box-shadow: 0 0 0 4px rgba(196,154,92,0.3);
+}
+
+.marker-label {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.custom-marker:hover .marker-label,
+.custom-marker.active-marker .marker-label {
+  opacity: 1;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+.empty-state-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  opacity: 0.4;
+}
+.empty-state-text {
+  font-size: 0.85rem;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-width: 100%;
+    height: 100vh;
+    z-index: 30;
+  }
+  .sidebar.hidden {
+    transform: translateY(100%);
+  }
+
+  .map-legend {
+    bottom: 20px;
+    right: 10px;
+    padding: 10px 12px;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="header-top">
+        <h1 class="site-title">Saklı Tiyatrolar</h1>
+        <div class="header-actions">
+          <button class="icon-btn" id="themeToggle" title="Tema değiştir" aria-label="Tema değiştir">
+            <svg id="themeIconMoon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <svg id="themeIconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          </button>
+          <button class="icon-btn" id="sidebarClose" title="Paneli kapat" aria-label="Paneli kapat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19l-7-7 7-7"></path><path d="M18 12H4"></path></svg>
+          </button>
+        </div>
+      </div>
+      <p class="site-subtitle">Kyaneai benzeri, tiyatrosu olan, keşfedilmemiş Anadolu antik kentleri</p>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <span class="search-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </span>
+      <input type="text" class="search-input" id="searchInput" placeholder="Antik kent, bölge veya ilçe ara…" autocomplete="off">
+    </div>
+
+    <!-- Region filters -->
+    <div class="filter-section">
+      <div class="filter-label">Bölge</div>
+      <div class="filter-chips" id="regionFilters">
+        <button class="chip active" data-region="all">Tümü</button>
+        <button class="chip" data-region="Likya">Likya</button>
+        <button class="chip" data-region="Karya">Karya</button>
+        <button class="chip" data-region="Pisidya">Pisidya</button>
+        <button class="chip" data-region="Pamfilya">Pamfilya</button>
+        <button class="chip" data-region="Kilikya">Kilikya</button>
+      </div>
+      <div class="filter-label">Erişim</div>
+      <div class="filter-chips" id="accessFilters">
+        <button class="chip active" data-access="all">Hepsi</button>
+        <button class="chip" data-access="Uzak">Uzak</button>
+        <button class="chip" data-access="Orta">Orta</button>
+        <button class="chip" data-access="Kolay">Kolay</button>
+      </div>
+    </div>
+
+    <!-- Cards list -->
+    <div class="cards-list" id="cardsList"></div>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      <div class="counter" id="counter"></div>
+      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer" class="footer-link">Created with Perplexity Computer</a>
+    </div>
+  </aside>
+
+  <!-- Map -->
+  <div class="map-container">
+    <button class="sidebar-toggle" id="sidebarToggle" title="Paneli aç" aria-label="Paneli aç">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+    <div id="map"></div>
+    <div class="map-legend">
+      <div class="legend-title">Erişim Düzeyi</div>
+      <div class="legend-item"><span class="legend-dot uzak"></span> Uzak</div>
+      <div class="legend-item"><span class="legend-dot orta"></span> Orta</div>
+      <div class="legend-item"><span class="legend-dot kolay"></span> Kolay</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SITES=[{"n":"İdebessos","la":36.5546,"lo":30.2022,"r":"Lycia","rc":"Likya","nr":"Kozağacı (Karacaören, Kumluca, Antalya)","ac":"Uzak","ad":"Uzak (overgrown with forest, hard to reach, hiking required)","f":"Ücretsiz","tc":"Reasonably well preserved, small with 7-8 visible steps","v":"Remote forested mountain site like Kyaneai, small theater integrated with nature, overgrown ruins, difficult access, atmospheric solitude","rk":1},{"n":"Kadyanda (Cadyanda)","la":36.7172,"lo":29.2363,"r":"Lycia","rc":"Likya","nr":"Yeşilüzümlü (Üzümlü)","ac":"Uzak","ad":"Uzak","f":"Ücretsiz (free, recent reviews)","tc":"Ruined/collapsed but visible, unrestored, poor stage house, built into rocky slope","v":"Untouched pine-forested hilltop, exploration feel, overgrown paths, no crowds, minimal excavation, peaceful discovery vibe like Kyaneai","rk":2},{"n":"Pinara","la":36.4893,"lo":29.2584,"r":"Lycia","rc":"Likya","nr":"Minare Köyü","ac":"Uzak","ad":"Uzak","f":"Küçük ücret (5-20 TL civarı, kaynaklara göre değişken; bazı eski raporlar ücretsiz diyor)","tc":"Relatively well-preserved cavea (almost intact), scene partly crumbled (2-4m height preserved); excavated but unrestored.","v":"Off-the-beaten-path Lycian site like Kyaneai: remote mountain location, untouched ruins, rock tombs, overgrown paths, steep access, low visitors, stunning valley views, explore freely 1-2 hours.","rk":3},{"n":"Oinoanda","la":36.80917,"lo":29.54972,"r":"Lycia (Kibyratis Tetrapolis)","rc":"Likya","nr":"İncealiler","ac":"Uzak","ad":"Uzak (hilltop, trekking required, isolated)","f":"Free (no mention of fees; unregulated access)","tc":"Ruined but not exceptionally bad; seats and frons scenae visible despite earthquakes and exposure.","v":"Remote hilltop ruins like Kyaneai; overgrown shrubbery, rocks, trees; requires hiking, off-beaten-path with cedar-covered hills.","rk":4},{"n":"Boubon (Bubon)","la":36.96906,"lo":29.40705,"r":"Northern Lycia (part of Cabalia, Kibyratis tetrapolis)","rc":"Likya","nr":"İbecik village (Gölhisar district, Burdur); 20km south of Gölhisar","ac":"Uzak","ad":"Uzak (remote, steep mountain side, off-beaten-path, not major tourist site)","f":"Free/unregulated (no mention of fee; rural unregulated site)","tc":"Ruined, damaged by illegal excavations, small sandstone theater visible but hard to identify among remains","v":"Remote Lycian hilltop site with overgrown ruins, damaged by looting like Kyaneai; small theater, fortifications, sebasteion with famous looted bronzes; atmospheric isolation in mountains.","rk":5},{"n":"Kitanaura","la":36.6475,"lo":30.36639,"r":"Lycia","rc":"Likya","nr":"Saraycık (Kumluca, Antalya)","ac":"Uzak","ad":"Uzak (mountain trek, off-beaten-path, ask locals)","f":"Ücretsiz (free, 24/7 open)","tc":"ruined remains (small kalıntısı)","v":"Small remote Lycian hill site with acropolis, heroon, baths, churches, necropolis; overgrown ruins requiring short trek, similar isolated atmosphere","rk":6},{"n":"Sidyma","la":36.4107,"lo":29.1928,"r":"Lycia","rc":"Likya","nr":"Dodurga (Dudurga Asari)","ac":"Uzak","ad":"Uzak","f":"Free, no entrance fee or facilities","tc":"Ruined, heavily buried/drained, only top steps or few seat rows visible","v":"Unexcavated, ruins integrated into living village of Dodurga, overgrown with agriculture/olive groves, tombs scattered in fields, quiet rural atmosphere, no crowds or restorations.","rk":7},{"n":"Adada","la":37.57528,"lo":30.98306,"r":"Pisidia","rc":"Pisidya","nr":"Sağrak village, Sütçüler township","ac":"Uzak","ad":"Uzak (middle of nowhere, few tourists, 2-hour drive through forest)","f":"Free (no fences, no entrance fee mentioned)","tc":"Partially excavated, unfinished, with visible seat rows; well-preserved among site structures but only partially uncovered.","v":"Remote, overgrown ruins in high valley with temples, agora, theater; low tourist traffic, natural setting with pine forests, ideal for quiet exploration like Kyaneai.","rk":8},{"n":"Balboura","la":36.95522,"lo":29.581139,"r":"Lycia","rc":"Likya","nr":"Çölkayiği / Altınyayla","ac":"Uzak","ad":"Uzak","f":"Ücretsiz (free, no fee mentioned)","tc":"Ruins only, non-standing; unexcavated, denuded, seats attached to natural rock.","v":"High-elevation (1200m) remote Lycian ruins in river valley, overgrown/non-standing structures, appeals to archaeology enthusiasts; undeveloped highland (yayla) atmosphere similar to Kyaneai.","rk":9},{"n":"Arykanda","la":36.51389,"lo":30.06,"r":"Lycia","rc":"Likya","nr":"Aykiriçay / Arif (near Finike)","ac":"Uzak","ad":"Uzak","f":"There is an entrance fee (recently ~15-50 TL, sometimes free reported; check on site)","tc":"Moderate preservation: cavea largely intact, stage building damaged; some trees in seats but seats visible","v":"Remote mountain site on terraces high above valley, forested slopes, serene and uncrowded like Kyaneai; excellent preservation due to isolation, dramatic views","rk":10},{"n":"Kremna","la":37.4977,"lo":30.6881,"r":"Pisidia","rc":"Pisidya","nr":"Çamlık village (15 km from Bucak)","ac":"Uzak","ad":"Uzak","f":"Ücretsiz","tc":"Ruined remnants, mostly heaps of stone, overgrown in places, remains visible.","v":"Remote cliff-top ruins in mountains, overgrown and ruined like Kyaneai, off-beaten-path with natural defenses, minimal tourists, requiring mountain road access.","rk":11},{"n":"Lyrbe Seleukeia","la":36.87477,"lo":31.47344,"r":"Pamphylia","rc":"Pamfilya","nr":"Bucakşeyhler (1 km north)","ac":"Uzak","ad":"Uzak (difficult access via dirt road through forest, rarely visited)","f":"Ücretsiz (free admission)","tc":"Well-preserved small structure with seats visible","v":"Forgotten hilltop fortress city in pine forest, overgrown paths, empty site, mystical atmosphere similar to remote Lycian ruins.","rk":12},{"n":"Sillyon","la":36.9925,"lo":30.98972,"r":"Pamphylia","rc":"Pamfilya","nr":"Asar Köy (Serik district, Antalya)","ac":"Uzak","ad":"Uzak (steep hike on goat paths, overgrown, no facilities, off-beaten-path adventure site)","f":"Ücretsiz (free, no admission fee)","tc":"Ruined; upper seats remain, stage collapsed due to 1969 landslide/earthquake, odeon destroyed.","v":"Steep hilltop ruins, overgrown vegetation, hiking adventure through brush and goat paths to acropolis; untouched, ruinous state with panoramic views; similar remote, rugged access and wild atmosphere.","rk":13},{"n":"Selge","la":37.22944,"lo":31.12722,"r":"Pisidia","rc":"Pisidya","nr":"Altınkaya (Zerk)","ac":"Uzak","ad":"Uzak (Taurus Mountains, 1250m alt., limited tourists/archaeology, ~55km mountain road from highway)","f":"Free (no guard/fence)","tc":"Cavea exceptionally well-preserved with original seating intact; scaenae frons collapsed; overall remarkable integrity despite weathering/vegetation.","v":"Remote mountain site in national park, ruins integrated with modern village houses using ancient materials; untouched by mass tourism, authentic rugged atmosphere with theater visible from afar amid terraced fields and canyons.","rk":14},{"n":"Rhodiapolis","la":36.38694,"lo":30.26556,"r":"Lycia","rc":"Likya","nr":"Kumluca (7-10km, 10 min drive uphill)","ac":"Orta","ad":"Orta (well signposted paved road from Kumluca, steep climb, not major tourist site but accessible)","f":"Free (visitor center under construction, possible future fee)","tc":"Partially restored/reconstructed (some new stonework); cavea 70% exposed and well-preserved; stage building preserved; ongoing restoration criticized in places.","v":"Compact hilltop Roman city like Kyaneai; overgrown until recent excavations, off-beaten-path Lycian site with theater, baths, tombs; rugged terrain, views over greenhouses.","rk":15},{"n":"Kibyra","la":37.1601,"lo":29.4892,"r":"Cibyratis (independent, near Lycia/Pisidia/Caria); later Asia province","rc":"Likya","nr":"Gölhisar (3 km)","ac":"Orta","ad":"Orta (car recommended, few tourists, public transport limited, off main routes but signposted)","f":"Free or museum card (recent reviews mention ticket office, but often no fee; check current)","tc":"Well-preserved Hellenistic theater (stage house largely destroyed); best-preserved roofed odeum in Turkey with 95% intact Medusa mosaic, seats, scaenae frons elements; Greco-Roman theater with >40 rows, capacity ~9,000-12,000.","v":"Vast site on hills with panoramic views, natural surroundings (juniper/cedar forests), quiet/solitary like Kyaneai, ongoing excavations, not overcrowded.","rk":16},{"n":"Ariassos","la":37.18111,"lo":30.4725,"r":"Pisidia","rc":"Pisidya","nr":"Dağbeli/Akkoç Köyü","ac":"Orta","ad":"Orta","f":"Ücretsiz","tc":"Unknown; likely ruined/advanced destruction like other non-gate structures","v":"Uncrowded mountain pass ruins on slopes, hiking required, unguarded/free access, overgrown minor structures, Pisidian sarcophagi necropolis, forgotten site","rk":17},{"n":"Syedra","la":36.44111,"lo":32.1525,"r":"Cilicia (westernmost)/Pamphylia border","rc":"Pamfilya","nr":"Seki (Alanya district)","ac":"Uzak","ad":"Uzak","f":"Free (no fee mentioned on official sites; Tripadvisor confirms)","tc":"Partially excavated and cleaned; seating rows and stage not yet reached; previously overgrown/vegetated, now visible structure; ongoing works to reveal more.","v":"Hilltop ruins with panoramic sea/mountain views; lesser-known, no crowds; ongoing excavations; rugged uphill access like remote Lycian sites.","rk":18},{"n":"Iasos","la":37.2775,"lo":27.586,"r":"Caria","rc":"Karya","nr":"Kıyıkışlacık","ac":"Orta","ad":"Orta","f":"Free (2024)","tc":"Ruined; only fragments survive, marble stripped in 1887","v":"Rarely visited fishing village site; partially overgrown, picturesque over bay, quiet atmospheric ruins with sea views from acropolis","rk":19},{"n":"Alinda","la":37.55833,"lo":27.82361,"r":"Caria","rc":"Karya","nr":"Karpuzlu","ac":"Orta","ad":"Orta (steep hill climb from small town, off main tourist path but accessible by car/taxi)","f":"Free","tc":"Well-preserved but overgrown with vegetation and olive trees","v":"Overgrown theater with trees on seats, authentic unrestored ruins on hilltop fortress overlooking plain, mixed with modern village life using ancient stones, strenuous hike adds remote feel","rk":20},{"n":"Limyra","la":36.3428306,"lo":30.1705194,"r":"Lycia","rc":"Likya","nr":"Finike (6-9 km)","ac":"Orta","ad":"Orta (off-beaten-path, peaceful, away from crowds, easy road access from Finike)","f":"70 TL (Müze Kart accepted; older reports 10-12.5 TL)","tc":"Partially preserved; seating and corridors visible, stage building mostly disappeared, best preserved structure on site per reviews.","v":"Peaceful valley site with river, rock tombs on hillsides, overgrown areas, less touristy like Kyaneai; marshy parts, wildflowers, not major destination.","rk":21},{"n":"Alabanda","la":37.5919,"lo":27.98497,"r":"Caria","rc":"Karya","nr":"Araphisar / Doğanyurt (Çine, Aydın)","ac":"Orta","ad":"Orta (rural village location, dirt roads, not major tourist site)","f":"Ücretsiz (free)","tc":"Mixed preservation: seating largely robbed, substructures (barrel-vaulted corridors) well-preserved, marble seats visible, ongoing excavations.","v":"Rural setting with farms and village built over ruins, peaceful countryside atmosphere, ongoing excavations, similar off-beaten-path feel.","rk":22},{"n":"Euromos","la":37.37417,"lo":27.67528,"r":"Caria","rc":"Karya","nr":"Selimiye (4km), Milas (12km)","ac":"Orta","ad":"Orta","f":"~3 Euro (2024), previously 15 TL","tc":"Partly excavated and buried; upper seats preserved (some shifted), lower parts better preserved under soil; overgrown; restoration ongoing to complete seats and orchestra","v":"Overgrown olive groves, ongoing excavations, quiet off-highway site with easy access but limited infrastructure; theater partly buried and hidden like remote Lycian sites","rk":23},{"n":"Nysa","la":37.9036,"lo":28.14531,"r":"Caria","rc":"Karya","nr":"Sultanhisar (3 km south)","ac":"Orta","ad":"Orta (off-beaten-path, rarely visited, overgrown, car access easy from main road)","f":"3 euros (2025)","tc":"Well-preserved, undergoing restoration; some marble plundered, friezes repaired/replicas.","v":"Vast overgrown ruins in gorge valley, wander alone among olives; dramatic setting like Kyaneai but better preserved theater and more accessible.","rk":24},{"n":"Kaunos","la":36.82564,"lo":28.62361,"r":"Caria (border with Lycia)","rc":"Likya","nr":"Dalyan","ac":"Kolay","ad":"Kolay (boat from Dalyan center, 20-min walk uphill; popular day trip)","f":"Yes, ~15-20 TL (Museum Pass free); boat extra","tc":"Relatively good condition; most seating preserved, stage foundations visible; limestone structure on hillside","v":"Popular tourist site with good preservation and access; less remote than Kyaneai, but scenic riverside ruins with theater views; ~40k visitors/year","rk":25},{"n":"Olba Diocaesarea (Uzuncaburç)","la":36.583,"lo":33.933,"r":"Cilicia Tracheia / Rough Cilicia","rc":"Kilikya","nr":"Uzuncaburç village (30km N of Silifke)","ac":"Orta","ad":"Orta (mountain site, car needed, few tourists, quiet)","f":"~140 TL (2025), previously 5-141 TL; 9-17 hours","tc":"Well-preserved but some renovation ongoing; little restoration, in great condition per visitors.","v":"Remote mountain ruins with village on site, overgrown natural state, quiet off-beaten-path similar to Lycian hidden theaters; cold weather, aqueducts/tombs en route.","rk":26},{"n":"Stratonikeia","la":37.313056,"lo":28.065278,"r":"Caria","rc":"Karya","nr":"Eskihisar (within site), Yatağan (7 km east)","ac":"Kolay","ad":"Kolay","f":"Modest fee, MuseumPass valid","tc":"Ruined, partially preserved cavea visible; damaged by earthquakes (e.g., western section slid after 365 AD), under restoration","v":"Living archaeological site blending Hellenistic-Roman ruins with Ottoman village houses and streets; ongoing excavations, cafes amid ruins; less crowded than coastal sites like Ephesus","rk":27}];
+
+// State
+let activeRegion = 'all';
+let activeAccess = 'all';
+let searchQuery = '';
+let activeCardIndex = -1;
+let markers = [];
+let currentPopup = null;
+
+// DOM
+const cardsList = document.getElementById('cardsList');
+const counter = document.getElementById('counter');
+const searchInput = document.getElementById('searchInput');
+const sidebar = document.getElementById('sidebar');
+
+// Init map
+const map = new maplibregl.Map({
+  container: 'map',
+  style: getComputedStyle(document.documentElement).getPropertyValue('--map-style').trim(),
+  center: [30.5, 37.5],
+  zoom: 6,
+  attributionControl: false
+});
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+function isFree(fee) {
+  if (!fee) return false;
+  const f = fee.toLowerCase();
+  return f.includes('ücretsiz') || f === 'free' || f.startsWith('free ') || f.includes('free,') || f.includes('free (') || f.includes('free/');
+}
+
+function getAccessClass(ac) {
+  return ac === 'Uzak' ? 'uzak' : ac === 'Orta' ? 'orta' : 'kolay';
+}
+
+function getFilteredSites() {
+  return SITES.filter(s => {
+    if (activeRegion !== 'all' && s.rc !== activeRegion) return false;
+    if (activeAccess !== 'all' && s.ac !== activeAccess) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const haystack = (s.n + ' ' + s.rc + ' ' + s.r + ' ' + s.nr).toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderCards() {
+  const filtered = getFilteredSites();
+  counter.innerHTML = `<strong>${filtered.length}</strong> / ${SITES.length} antik kent`;
+
+  if (filtered.length === 0) {
+    cardsList.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏛️</div><div class="empty-state-text">Aramanızla eşleşen antik kent bulunamadı</div></div>`;
+    return;
+  }
+
+  cardsList.innerHTML = filtered.map((s, i) => `
+    <div class="site-card${activeCardIndex === s.rk ? ' active' : ''}" data-index="${s.rk}" onclick="selectSite(${s.rk})">
+      <div class="card-top">
+        <div class="rank-badge">${s.rk}</div>
+        <div class="card-info">
+          <div class="card-name">${s.n}</div>
+          <div class="card-region">${s.rc} — ${s.nr}</div>
+        </div>
+      </div>
+      <div class="card-tags">
+        <span class="access-tag ${getAccessClass(s.ac)}">${s.ac}</span>
+        ${isFree(s.f) ? '<span class="free-badge">Ücretsiz</span>' : ''}
+      </div>
+      <div class="card-vibe">${s.v}</div>
+    </div>
+  `).join('');
+}
+
+function createMarkers() {
+  // Remove existing
+  markers.forEach(m => m.marker.remove());
+  markers = [];
+
+  const filtered = getFilteredSites();
+  filtered.forEach(s => {
+    const el = document.createElement('div');
+    el.className = `custom-marker ${getAccessClass(s.ac)}`;
+    if (activeCardIndex === s.rk) el.classList.add('active-marker');
+
+    const label = document.createElement('div');
+    label.className = 'marker-label';
+    label.textContent = s.n;
+    el.appendChild(label);
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectSite(s.rk, true);
+    });
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([s.lo, s.la])
+      .addTo(map);
+
+    markers.push({ marker, site: s, el });
+  });
+}
+
+function fitMapToFiltered() {
+  const filtered = getFilteredSites();
+  if (filtered.length === 0) return;
+
+  if (activeRegion === 'all' && activeAccess === 'all' && !searchQuery) {
+    map.flyTo({ center: [30.5, 37.5], zoom: 6, duration: 800 });
+    return;
+  }
+
+  if (filtered.length === 1) {
+    map.flyTo({ center: [filtered[0].lo, filtered[0].la], zoom: 11, duration: 800 });
+    return;
+  }
+
+  const bounds = new maplibregl.LngLatBounds();
+  filtered.forEach(s => bounds.extend([s.lo, s.la]));
+  map.fitBounds(bounds, { padding: 80, duration: 800, maxZoom: 12 });
+}
+
+function selectSite(rk, fromMarker = false) {
+  const site = SITES.find(s => s.rk === rk);
+  if (!site) return;
+
+  activeCardIndex = rk;
+  renderCards();
+  createMarkers();
+
+  // Scroll card into view
+  const cardEl = cardsList.querySelector(`[data-index="${rk}"]`);
+  if (cardEl) cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // Fly to location
+  map.flyTo({ center: [site.lo, site.la], zoom: 13, duration: 1000 });
+
+  // Close existing popup
+  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+
+  // Build popup
+  const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${site.la},${site.lo}`;
+  const wikiUrl = `https://tr.wikipedia.org/wiki/${encodeURIComponent(site.n.split(' (')[0])}`;
+
+  const html = `
+    <div class="popup-name">${site.n}</div>
+    <div class="popup-region">${site.rc} — ${site.nr}</div>
+    <div class="popup-detail"><strong>Erişim:</strong> ${site.ad}</div>
+    <div class="popup-detail"><strong>Ücret:</strong> ${site.f}</div>
+    <div class="popup-detail"><strong>Tiyatro Durumu:</strong> ${site.tc}</div>
+    <div class="popup-detail"><strong>Atmosfer:</strong> ${site.v}</div>
+    <div class="popup-links">
+      <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="popup-link">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        Google Maps
+      </a>
+      <a href="${wikiUrl}" target="_blank" rel="noopener noreferrer" class="popup-link">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        Vikipedi
+      </a>
+    </div>
+  `;
+
+  currentPopup = new maplibregl.Popup({ offset: 20, maxWidth: '340px', closeOnClick: true })
+    .setLngLat([site.lo, site.la])
+    .setHTML(html)
+    .addTo(map);
+
+  currentPopup.on('close', () => {
+    activeCardIndex = -1;
+    renderCards();
+    createMarkers();
+    currentPopup = null;
+  });
+
+  // On mobile, close sidebar
+  if (window.innerWidth <= 768) {
+    sidebar.classList.add('hidden');
+  }
+}
+
+function updateFilters() {
+  renderCards();
+  createMarkers();
+  fitMapToFiltered();
+}
+
+// Region filter
+document.getElementById('regionFilters').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  document.querySelectorAll('#regionFilters .chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeRegion = chip.dataset.region;
+  activeCardIndex = -1;
+  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+  updateFilters();
+});
+
+// Access filter
+document.getElementById('accessFilters').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  document.querySelectorAll('#accessFilters .chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeAccess = chip.dataset.access;
+  activeCardIndex = -1;
+  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+  updateFilters();
+});
+
+// Search
+searchInput.addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  activeCardIndex = -1;
+  if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+  updateFilters();
+});
+
+// Theme toggle
+const themeToggle = document.getElementById('themeToggle');
+const moonIcon = document.getElementById('themeIconMoon');
+const sunIcon = document.getElementById('themeIconSun');
+
+themeToggle.addEventListener('click', () => {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  moonIcon.style.display = isDark ? 'none' : 'block';
+  sunIcon.style.display = isDark ? 'block' : 'none';
+
+  // Switch map style
+  const newStyle = isDark
+    ? 'https://tiles.openfreemap.org/styles/positron'
+    : 'https://tiles.openfreemap.org/styles/dark';
+
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  map.setStyle(newStyle);
+  map.once('styledata', () => {
+    map.setCenter(center);
+    map.setZoom(zoom);
+    createMarkers();
+  });
+});
+
+// Sidebar toggle
+const sidebarToggleBtn = document.getElementById('sidebarToggle');
+
+function updateToggleVisibility() {
+  if (sidebar.classList.contains('hidden')) {
+    sidebarToggleBtn.classList.remove('hide-toggle');
+  } else {
+    sidebarToggleBtn.classList.add('hide-toggle');
+  }
+}
+
+document.getElementById('sidebarClose').addEventListener('click', () => {
+  sidebar.classList.add('hidden');
+  updateToggleVisibility();
+  setTimeout(() => map.resize(), 400);
+});
+
+sidebarToggleBtn.addEventListener('click', () => {
+  sidebar.classList.remove('hidden');
+  updateToggleVisibility();
+  setTimeout(() => map.resize(), 400);
+});
+
+updateToggleVisibility();
+
+// Initial render
+map.on('load', () => {
+  renderCards();
+  createMarkers();
+});
+</script>
+</body>
+</html>
