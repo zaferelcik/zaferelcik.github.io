@@ -14,3 +14,8 @@ A lightweight, web-based tool for tinkering with and modifying fonts directly in
 A simple explorer for market price data.
 
 * **Tech Stack:** HTML, CSS, JavaScript
+
+### [Sakli Tiyatrolar - Antik Kent Haritasi](antikkent.html)
+An interactive map for discovering lesser-known Anatolian ancient cities with theaters.
+
+* **Tech Stack:** HTML, CSS, JavaScript
